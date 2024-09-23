@@ -52,6 +52,9 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
+    const db = client.db("job-hunting");
+    const jobCollection = db.collection("jobs");
+
     // await client.connect();
     app.post("/jwt", async (req, res) => {
       const user = req.body;
@@ -82,8 +85,6 @@ async function run() {
         res.status(500).send(err);
       }
     });
-
-    const jobCollection = client.db("Job-hanting").collection("jobs");
 
     //  jobs related api
     app.get("/jobs", async (_req, res) => {
