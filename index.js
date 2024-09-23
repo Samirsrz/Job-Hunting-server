@@ -89,7 +89,10 @@ async function run() {
     //  jobs related api
     app.get("/jobs", async (_req, res) => {
       try {
-        const results = await jobCollection.find().toArray();
+        const results = await jobCollection
+          .find()
+          .project({ logo: 1, title: 1, description: 1, reviews: 1, rating: 1 })
+          .toArray();
         res.status(200).send({
           success: true,
           message: "Job get successfully",
