@@ -87,10 +87,12 @@ async function run() {
     });
 
     //  jobs related api
-    app.get("/jobs", async (_req, res) => {
+    app.get("/jobs", async (req, res) => {
       try {
+        const { category } = req.query;
+        const query = category ? { category } : {};
         const results = await jobCollection
-          .find()
+          .find(query)
           .project({ logo: 1, title: 1, description: 1, reviews: 1, rating: 1 })
           .toArray();
         res.status(200).send({
