@@ -51,7 +51,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    
+    const db = client.db("job-hunting;")
    // await client.connect();
   app.post('/jwt', async(req, res) => {
       const user= req.body;
