@@ -45,7 +45,7 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
-    strict: true,
+    strict: false,
     deprecationErrors: true,
   },
 });
@@ -114,6 +114,23 @@ async function run() {
         res.status(201).send({
           success: true,
           message: "Job insert successfully",
+          data: result,
+        });
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          data: error,
+        });
+      }
+    });
+
+    app.get("/category", async (_req, res) => {
+      try {
+        const result = await jobCollection.distinct("category");
+        res.status(201).send({
+          success: true,
+          message: "Job Category get successfully",
           data: result,
         });
       } catch (error) {
