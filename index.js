@@ -83,16 +83,34 @@ async function run() {
       }
     });
 
-    const jobCollection = db.collection("jobs");
+    const jobCollection = client.db("Job-hanting").collection("jobs");
 
     //  jobs related api
-    app.get("/jobs", async (req, res) => {
+    app.get("/jobs", async (_req, res) => {
       try {
         const results = await jobCollection.find().toArray();
         res.status(200).send({
           success: true,
           message: "Job get successfully",
           data: results,
+        });
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          data: error,
+        });
+      }
+    });
+
+    app.post("/jobs/new", async (req, res) => {
+      try {
+        const newJob = req.body;
+        const result = await jobCollection.insertOne(newJob);
+        res.status(201).send({
+          success: true,
+          message: "Job insert successfully",
+          data: result,
         });
       } catch (error) {
         res.status(400).send({
