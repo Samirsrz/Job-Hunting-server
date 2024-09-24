@@ -51,7 +51,8 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    const db = client.db("job-hunting;")
+    const db = client.db("job-hunting")
+
    // await client.connect();
   app.post('/jwt', async(req, res) => {
       const user= req.body;
@@ -59,7 +60,7 @@ async function run() {
         expiresIn : '365d',
       })
       res 
-      .cookie('token', token, {
+      .cookie('token', token, { 
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
