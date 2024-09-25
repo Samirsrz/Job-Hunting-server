@@ -3,7 +3,7 @@ const app = express();
 require("dotenv").config();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const jwt = require("jsonwebtoken");
 const port = process.env.port || 8000;
@@ -99,6 +99,25 @@ async function run() {
           success: true,
           message: "Job get successfully",
           data: results,
+        });
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          data: error,
+        });
+      }
+    });
+
+    app.get("/jobs/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const query = { _id: new ObjectId(id) };
+        const result = await jobCollection.findOne(query);
+        res.status(200).send({
+          success: true,
+          message: `${result?.title ?? "Job"} get successfully`,
+          data: result,
         });
       } catch (error) {
         res.status(400).send({
