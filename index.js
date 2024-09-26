@@ -115,6 +115,36 @@ async function run() {
       }
     });
 
+    app.get("/job-suggestions", async (req, res) => {
+      try {
+        const { search } = req.query;
+        if (!search) {
+          return res.status(200).send({
+            success: true,
+            message: "No search term provided",
+            data: [],
+          });
+        }
+        const results = await jobCollection
+          .find({ title: { $regex: search, $options: "i" } })
+          .project({ title: 1 })
+          .limit(5)
+          .toArray();
+
+        res.status(200).send({
+          success: true,
+          message: "Search suggestions retrieved successfully",
+          data: results.map((job) => job.title),
+        });
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          data: error,
+        });
+      }
+    });
+
     app.get("/jobs/:id", async (req, res) => {
       try {
         const { id } = req.params;
