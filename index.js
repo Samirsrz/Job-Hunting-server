@@ -3,7 +3,7 @@ const app = express();
 require("dotenv").config();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const jwt = require("jsonwebtoken");
 const port = process.env.port || 8000;
@@ -89,8 +89,14 @@ async function run() {
     //  jobs related api
     app.get("/jobs", async (req, res) => {
       try {
-        const { category } = req.query;
-        const query = category ? { category } : {};
+        const { category, search } = req.query;
+        let query = {};
+        if (category) {
+          query.category = category;
+        }
+        if (search) {
+          query.title = { $regex: search, $options: "i" };
+        }
         const results = await jobCollection
           .find(query)
           .project({ logo: 1, title: 1, description: 1, reviews: 1, rating: 1 })
@@ -109,9 +115,60 @@ async function run() {
       }
     });
 
-    app.post("/jobs/new", async (req, res) => {
+    app.get("/job-suggestions", async (req, res) => {
+      try {
+        const { search } = req.query;
+        if (!search) {
+          return res.status(200).send({
+            success: true,
+            message: "No search term provided",
+            data: [],
+          });
+        }
+        const results = await jobCollection
+          .find({ title: { $regex: search, $options: "i" } })
+          .project({ title: 1 })
+          .limit(5)
+          .toArray();
+
+        res.status(200).send({
+          success: true,
+          message: "Search suggestions retrieved successfully",
+          data: results.map((job) => job.title),
+        });
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          data: error,
+        });
+      }
+    });
+
+    app.get("/jobs/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const query = { _id: new ObjectId(id) };
+        const result = await jobCollection.findOne(query);
+        res.status(200).send({
+          success: true,
+          message: `${result?.title ?? "Job"} get successfully`,
+          data: result,
+        });
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          data: error,
+        });
+      }
+    });
+
+    app.post("/jobs/new", verifyToken, async (req, res) => {
       try {
         const newJob = req.body;
+        newJob.date = new Date();
+        newJob.email = req.user.email;
         const result = await jobCollection.insertOne(newJob);
         res.status(201).send({
           success: true,
