@@ -164,9 +164,11 @@ async function run() {
       }
     });
 
-    app.post("/jobs/new", async (req, res) => {
+    app.post("/jobs/new", verifyToken, async (req, res) => {
       try {
         const newJob = req.body;
+        newJob.date = new Date();
+        newJob.email = req.user.email;
         const result = await jobCollection.insertOne(newJob);
         res.status(201).send({
           success: true,
