@@ -160,3 +160,57 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   console.log(`Job Hunting is running on port ${port}`);
 });
+
+
+
+// Job schema and model
+const jobSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  company: { type: String, required: true },
+  location: { type: String, required: true },
+  salary: { type: Number, required: true },
+  employmentType: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
+});
+
+const Job = mongoose.model('Job', jobSchema);
+
+// POST route to create a job
+app.post('/api/jobs', async (req, res) => {
+  try {
+    const { title, description, company, location, salary, employmentType } = req.body;
+    
+    // Validate required fields
+    if (!title || !description || !company || !location || !salary || !employmentType) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    const newJob = new Job({
+      title,
+      description,
+      company,
+      location,
+      salary,
+      employmentType,
+    });
+
+    await newJob.save(); // Save the job in MongoDB
+    res.status(201).json({ message: 'Job posted successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error: ' + error.message });
+  }
+});
+
+// Serve static files (React app) - for production only
+app.use(express.static(path.join(__dirname, 'frontend/build')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend/build', 'index.html'));
+});
+
+// Start the server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
