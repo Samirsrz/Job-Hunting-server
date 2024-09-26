@@ -89,8 +89,14 @@ async function run() {
     //  jobs related api
     app.get("/jobs", async (req, res) => {
       try {
-        const { category } = req.query;
-        const query = category ? { category } : {};
+        const { category, search } = req.query;
+        let query = {};
+        if (category) {
+          query.category = category;
+        }
+        if (search) {
+          query.title = { $regex: search, $options: "i" };
+        }
         const results = await jobCollection
           .find(query)
           .project({ logo: 1, title: 1, description: 1, reviews: 1, rating: 1 })
