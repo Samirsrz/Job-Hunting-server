@@ -89,7 +89,7 @@ async function run() {
     //  jobs related api
     app.get("/jobs", async (req, res) => {
       try {
-        const { category, search } = req.query;
+        const { category, search, sort } = req.query;
         let query = {};
         if (category) {
           query.category = category;
@@ -97,9 +97,11 @@ async function run() {
         if (search) {
           query.title = { $regex: search, $options: "i" };
         }
+        const sortOrder = sort === "asc" ? 1 : -1;
         const results = await jobCollection
           .find(query)
           .project({ logo: 1, title: 1, description: 1, reviews: 1, rating: 1 })
+          .sort({ salary: sortOrder })
           .toArray();
         res.status(200).send({
           success: true,
