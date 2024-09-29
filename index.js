@@ -51,6 +51,7 @@ async function run() {
   try {
     const db = client.db("job-hunting");
     const jobCollection = db.collection("jobs");
+    const appliesCollection = db.collection("applies");
 
     // await client.connect();
     app.post("/jwt", async (req, res) => {
@@ -136,11 +137,16 @@ async function run() {
       }
     });
 
-    app.get("/jobs/:id", async (req, res) => {
+    app.get("/jobs/:id", verifyToken, async (req, res) => {
       try {
         const { id } = req.params;
         const query = { _id: new ObjectId(id) };
         const result = await jobCollection.findOne(query);
+        const existingApplication = await appliesCollection.findOne({
+          jobId: id,
+          applicantEmail: req.user.email,
+        });
+        result.applied = !!existingApplication;
         res.status(200).send({
           success: true,
           message: `${result?.title ?? "Job"} get successfully`,
@@ -155,11 +161,62 @@ async function run() {
       }
     });
 
+    app.post("/jobs/:id/apply", verifyToken, async (req, res) => {
+      try {
+        const jobId = req.params.id;
+        const { applicantName, resumeLink, coverLetter = "" } = req.body;
+
+        if (!applicantName || !resumeLink) {
+          return res.status(400).send({
+            success: false,
+            message: "Missing required application information",
+          });
+        }
+
+        const existingApplication = await appliesCollection.findOne({
+          jobId: jobId,
+          applicantEmail: req.user.email,
+        });
+
+        if (existingApplication) {
+          return res.status(400).send({
+            success: false,
+            message: "You have already applied for this job",
+          });
+        }
+
+        const application = {
+          jobId: jobId,
+          applicantName: applicantName,
+          applicantEmail: req.user.email,
+          resumeLink: resumeLink,
+          coverLetter: coverLetter,
+          appliedAt: new Date(),
+        };
+
+        const result = await appliesCollection.insertOne(application);
+
+        res.status(201).send({
+          success: true,
+          message: "Application submitted successfully",
+          data: result,
+        });
+      } catch (error) {
+        res.status(500).send({
+          success: false,
+          message: "Something went wrong",
+          data: error.message,
+        });
+      }
+    });
+
     app.post("/jobs/new", verifyToken, async (req, res) => {
       try {
         const newJob = req.body;
         newJob.date = new Date();
         newJob.email = req.user.email;
+        newJob.rating = 0;
+        newJob.reviews = [];
         const result = await jobCollection.insertOne(newJob);
         res.status(201).send({
           success: true,
