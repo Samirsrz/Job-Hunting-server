@@ -249,6 +249,51 @@ async function run() {
       }
     });
 
+    app.delete("/jobs/:id/apply", verifyToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const applicantEmail = req.user.email;
+
+        if (!id || !applicantEmail) {
+          return res.status(400).send({
+            success: false,
+            message:
+              "Job ID and applicant email are required to cancel application",
+          });
+        }
+
+        const query = { jobId: id, applicantEmail };
+        const existingApplication = await appliesCollection.findOne(query);
+
+        if (!existingApplication) {
+          return res.status(404).send({
+            success: false,
+            message: "Application not found",
+          });
+        }
+
+        const deleteResult = await appliesCollection.deleteOne(query);
+
+        if (deleteResult.deletedCount === 1) {
+          return res.status(200).send({
+            success: true,
+            message: "Application cancelled successfully",
+          });
+        } else {
+          return res.status(500).send({
+            success: false,
+            message: "Failed to cancel application",
+          });
+        }
+      } catch (error) {
+        res.status(500).send({
+          success: false,
+          message: "Something went wrong",
+          data: error.message,
+        });
+      }
+    });
+
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
