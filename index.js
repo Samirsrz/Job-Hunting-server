@@ -55,6 +55,10 @@ async function run() {
     const db = client.db("job-hunting");
     const jobCollection = db.collection("jobs");
 
+  // // followers collection
+
+  const followersCollection=db.collection('followers')
+
     // await client.connect();
     app.post("/jwt", async (req, res) => {
       const user = req.body;
@@ -202,6 +206,74 @@ async function run() {
         });
       }
     });
+
+    // // followers task
+
+    app.post('/view-jobs/followers',async (req,res) => {
+      try {
+        let followerInfo=req.body
+        const followed = await followersCollection.findOne({ email: req.body.email});
+        if (followed) {
+          return res.send({message:'already included'})
+        }
+        // console.log(followerInfo);
+        let result =await followersCollection.insertOne(followerInfo)
+       return res.json(result).status(200)
+      } catch (error) {
+        return res.json({message:'something went wrong',error:error.message},{status:500})
+      }
+    })
+
+    // //  is follower
+
+    app.get('/follower/:email', async (req, res) => {
+      try {
+        const { email } = req.params;
+        console.log(email);
+        
+        // Check if email exists in the collection
+        const result = await followersCollection.findOne({ email: email });
+        
+        if (result) {
+          console.log(result);
+          res.status(200).send({ message: 'Email found in followers', isFound: true });
+        } else {
+          res.status(404).send({ message: 'Email not found in followers',isFound:false });
+        }
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ error: error.message });
+      }
+    });
+    
+    app.get('/followers', async (req, res) => {
+      try {
+        // Check if email exists in the collection
+        const result = await followersCollection.find().toArray();
+        
+        if (result) {
+          console.log(result);
+          res.status(200).send({ message: ' followers found', data:result });
+        } else {
+          res.status(404).send({ message: ' followers not found'});
+        }
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ error: error.message });
+      }
+    });
+
+    // // unfollow
+
+    app.delete('/user/follower/:email',async (req,res) => {
+      try {
+        let result=await followersCollection.deleteOne({email:req.params.email})
+        res.json({message:'deleted successfully',result}).status(200)
+      } catch (error) {
+        return res.json({message:'something went wrong',error:error.message}).status(500)
+      }
+    })
+    
 
     await client.db("admin").command({ ping: 1 });
     console.log(
