@@ -23,19 +23,16 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
-const verifyToken = async (req, res, next) => {
-  const token = req.cookies?.token;
-  console.log(token);
+const verifyToken = (req, res, next) => {
+  const token = req.headers.authorization.split(" ")[1];
   if (!token) {
     return res.status(401).send({ message: "unauthorized access" });
   }
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) {
-      console.log(err);
       return res.status(401).send({ message: "unauthorized access" });
     }
-
-    req.user = decoded;
+    req.user = { email: decoded };
     next();
   });
 };
@@ -54,6 +51,7 @@ async function run() {
   try {
     const db = client.db("job-hunting");
     const jobCollection = db.collection("jobs");
+    const appliesCollection = db.collection("applies");
 
   // // followers collection
 
@@ -61,17 +59,9 @@ async function run() {
 
     // await client.connect();
     app.post("/jwt", async (req, res) => {
-      const user = req.body;
-      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "365d",
-      });
-      res
-        .cookie("token", token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-        })
-        .send({ success: true });
+      const { email } = req.body;
+      const token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET);
+      res.send({ token });
     });
 
     //Logout
@@ -151,11 +141,16 @@ async function run() {
       }
     });
 
-    app.get("/jobs/:id", async (req, res) => {
+    app.get("/jobs/:id", verifyToken, async (req, res) => {
       try {
         const { id } = req.params;
         const query = { _id: new ObjectId(id) };
         const result = await jobCollection.findOne(query);
+        const existingApplication = await appliesCollection.findOne({
+          jobId: id,
+          applicantEmail: req.user.email,
+        });
+        result.applied = !!existingApplication;
         res.status(200).send({
           success: true,
           message: `${result?.title ?? "Job"} get successfully`,
@@ -170,11 +165,62 @@ async function run() {
       }
     });
 
+    app.post("/jobs/:id/apply", verifyToken, async (req, res) => {
+      try {
+        const jobId = req.params.id;
+        const { applicantName, resumeLink, coverLetter = "" } = req.body;
+
+        if (!applicantName || !resumeLink) {
+          return res.status(400).send({
+            success: false,
+            message: "Missing required application information",
+          });
+        }
+
+        const existingApplication = await appliesCollection.findOne({
+          jobId: jobId,
+          applicantEmail: req.user.email,
+        });
+
+        if (existingApplication) {
+          return res.status(400).send({
+            success: false,
+            message: "You have already applied for this job",
+          });
+        }
+
+        const application = {
+          jobId: jobId,
+          applicantName: applicantName,
+          applicantEmail: req.user.email,
+          resumeLink: resumeLink,
+          coverLetter: coverLetter,
+          appliedAt: new Date(),
+        };
+
+        const result = await appliesCollection.insertOne(application);
+
+        res.status(201).send({
+          success: true,
+          message: "Application submitted successfully",
+          data: result,
+        });
+      } catch (error) {
+        res.status(500).send({
+          success: false,
+          message: "Something went wrong",
+          data: error.message,
+        });
+      }
+    });
+
     app.post("/jobs/new", verifyToken, async (req, res) => {
       try {
         const newJob = req.body;
         newJob.date = new Date();
         newJob.email = req.user.email;
+        newJob.rating = 0;
+        newJob.reviews = [];
         const result = await jobCollection.insertOne(newJob);
         res.status(201).send({
           success: true,
@@ -274,6 +320,51 @@ async function run() {
       }
     })
     
+
+    app.delete("/jobs/:id/apply", verifyToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const applicantEmail = req.user.email;
+
+        if (!id || !applicantEmail) {
+          return res.status(400).send({
+            success: false,
+            message:
+              "Job ID and applicant email are required to cancel application",
+          });
+        }
+
+        const query = { jobId: id, applicantEmail };
+        const existingApplication = await appliesCollection.findOne(query);
+
+        if (!existingApplication) {
+          return res.status(404).send({
+            success: false,
+            message: "Application not found",
+          });
+        }
+
+        const deleteResult = await appliesCollection.deleteOne(query);
+
+        if (deleteResult.deletedCount === 1) {
+          return res.status(200).send({
+            success: true,
+            message: "Application cancelled successfully",
+          });
+        } else {
+          return res.status(500).send({
+            success: false,
+            message: "Failed to cancel application",
+          });
+        }
+      } catch (error) {
+        res.status(500).send({
+          success: false,
+          message: "Something went wrong",
+          data: error.message,
+        });
+      }
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
