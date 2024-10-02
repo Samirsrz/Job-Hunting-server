@@ -171,6 +171,7 @@ async function run() {
           coverLetter,
           status = "",
           jobTitle,
+          companyName,
         } = req.body;
 
         if (!applicantName || !resumeLink) {
@@ -200,6 +201,7 @@ async function run() {
           coverLetter: coverLetter,
           status: status,
           jobTitle,
+          companyName,
           appliedAt: new Date(),
         };
 
