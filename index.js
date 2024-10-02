@@ -162,7 +162,7 @@ async function run() {
     });
 
     // application information store in db
-    app.post("/jobs/:id/apply", verifyToken, async (req, res) => {
+    app.post(`/jobs/:id/apply`, verifyToken, async (req, res) => {
       try {
         const jobId = req.params.id;
         const {
@@ -170,6 +170,7 @@ async function run() {
           resumeLink,
           coverLetter,
           status = "",
+          jobTitle,
         } = req.body;
 
         if (!applicantName || !resumeLink) {
@@ -198,6 +199,7 @@ async function run() {
           resumeLink: resumeLink,
           coverLetter: coverLetter,
           status: status,
+          jobTitle,
           appliedAt: new Date(),
         };
 
