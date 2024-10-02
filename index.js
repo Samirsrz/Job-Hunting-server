@@ -52,6 +52,7 @@ async function run() {
     const db = client.db("job-hunting");
     const jobCollection = db.collection("jobs");
     const appliesCollection = db.collection("applies");
+    const usersCollection = db.collection("users");
 
   // // followers collection
 
@@ -79,6 +80,29 @@ async function run() {
         res.status(500).send(err);
       }
     });
+
+   //user saving in DB route 
+
+  app.put('/user', async(req, res) => {
+     const user = req.body;
+     const query = {email : user?.email}
+
+     const isExist  = await usersCollection.findOne(query);
+     if(isExist){
+      return res.send(isExist)
+     }
+     const options = {upsert : true}
+     const updateDoc = {
+      $set: {
+        ...user,
+        timestamp: Date.now()
+      },
+     }
+     const result = await usersCollection.updateOne(query, updateDoc, options)
+     res.send(result);
+
+  })
+
 
     //  jobs related api
     app.get("/jobs", async (req, res) => {
