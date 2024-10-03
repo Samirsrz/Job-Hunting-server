@@ -529,7 +529,7 @@ async function run() {
           data: error.message,
         });
       }
-    });
+    }); 
 
     await client.db("admin").command({ ping: 1 });
     console.log(
