@@ -15,6 +15,8 @@ const corsOptions = {
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:5175",
+    
+    "https://job-hunting-job-seekers.vercel.app"
   ],
   credentials: true,
   optionSuccessStatus: 200,
@@ -49,7 +51,9 @@ const client = new MongoClient(uri, {
 });
 
 async function run() {
+
   try {
+    
     const db = client.db("job-hunting");
     const jobCollection = db.collection("jobs");
     const appliesCollection = db.collection("applies");
@@ -290,6 +294,7 @@ async function run() {
         });
       }
     });
+
 
     // // featured jobs
 
