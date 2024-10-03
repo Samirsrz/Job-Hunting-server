@@ -104,9 +104,16 @@ async function run() {
     });
 
     // get the all user
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyToken, async (req, res) => {
       const id = req.body;
       const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+    //delete user
+    app.delete(`/user/:id`, verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const quary = { _id: new ObjectId(id) };
+      const result = await usersCollection.deleteOne(quary);
       res.send(result);
     });
 
