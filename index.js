@@ -103,6 +103,28 @@ async function run() {
       res.send(result);
     });
 
+
+    //user saving in DB route
+    app.put("/user", async (req, res) => {
+      const user = req.body;
+      const query = { email: user?.email };
+
+      const isExist = await usersCollection.findOne(query);
+      if (isExist) {
+        return res.send(isExist);
+      }
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          ...user,
+          timestamp: Date.now(),
+        },
+      };
+      const result = await usersCollection.updateOne(query, updateDoc, options);
+      res.send(result);
+    });
+
+
     // get the all user
     app.get("/users", verifyToken, async (req, res) => {
       const id = req.body;
