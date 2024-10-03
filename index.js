@@ -14,6 +14,8 @@ const corsOptions = {
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:5175",
+
+    "https://job-hunting-job-seekers.vercel.app"
   ],
   credentials: true,
   optionSuccessStatus: 200,
@@ -48,16 +50,20 @@ const client = new MongoClient(uri, {
 });
 
 async function run() {
+
   try {
+
     const db = client.db("job-hunting");
     const jobCollection = db.collection("jobs");
     const appliesCollection = db.collection("applies");
+    const companyJobsCollection = db.collection("jobs");
+    const featuredcompanyJobsCollection = db.collection("jobs");
     const usersCollection = db.collection("users");
     const companyCollection = db.collection("companies");
 
     // // followers collection
 
-    const followersCollection = db.collection("followers");
+    const followersCollection = db.collection('followers')
 
     // await client.connect();
     app.post("/jwt", async (req, res) => {
@@ -82,52 +88,36 @@ async function run() {
       }
     });
 
-    //user saving in DB route
+   //user saving in DB route 
 
-    app.put("/user", async (req, res) => {
-      const user = req.body;
-      const query = { email: user?.email };
+  app.put('/user', async(req, res) => {
+     const user = req.body;
+     const query = {email : user?.email}
 
-      const isExist = await usersCollection.findOne(query);
-      if (isExist) {
-        return res.send(isExist);
-      }
-      const options = { upsert: true };
-      const updateDoc = {
-        $set: {
-          ...user,
-          timestamp: Date.now(),
-        },
-      };
-      const result = await usersCollection.updateOne(query, updateDoc, options);
-      res.send(result);
-    });
+     const isExist  = await usersCollection.findOne(query);
+     if(isExist){
+      return res.send(isExist)
+     }
+     const options = {upsert : true}
+     const updateDoc = {
+      $set: {
+        ...user,
+        timestamp: Date.now()
+      },
+     }
+     const result = await usersCollection.updateOne(query, updateDoc, options)
+     res.send(result);
 
+  })
+  
 
-    //saving company data into Db
-    app.post("/company-data", async (req, res) => {
-      const query = req.body;
-      const result = await companyCollection.insertOne(query);
+  //saving company data into Db
+  app.post('/company-data', async(req, res) => {
+     const query = req.body;
+     const result = await companyCollection.insertOne(query);
+     res.send(result);
 
-    //user saving in DB route
-    app.put("/user", async (req, res) => {
-      const user = req.body;
-      const query = { email: user?.email };
-
-      const isExist = await usersCollection.findOne(query);
-      if (isExist) {
-        return res.send(isExist);
-      }
-      const options = { upsert: true };
-      const updateDoc = {
-        $set: {
-          ...user,
-          timestamp: Date.now(),
-        },
-      };
-      const result = await usersCollection.updateOne(query, updateDoc, options);
-      res.send(result);
-    });
+  })
 
 
     // get the all user
@@ -318,6 +308,52 @@ async function run() {
       }
     });
 
+    // // featured jobs
+
+
+    app.get("/featured/jobs", async (req, res) => {
+      try {
+        let isResult = await featuredcompanyJobsCollection.deleteMany()
+
+        console.log(isResult);
+
+        if (isResult.acknowledged == true) {
+          let posted = await featuredcompanyJobsCollection.insertMany(featuredcompanyJobs)
+          // return res.send(posted)
+          console.log(posted);
+          if (posted.acknowledged == true) {
+            let result = await featuredcompanyJobsCollection.find().toArray()
+            console.log(result);
+            
+            res.send(result)
+          }
+
+        }
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          error: error.message,
+        });
+      }
+    });
+
+    // // get data by id
+
+    app.get('/featured/jobs/:id',async (req,res) => {
+      try {
+        let id=req.params.id
+        console.log(id);
+        
+        let result=await featuredcompanyJobsCollection.findOne({_id:new ObjectId(id)})
+        console.log(result);
+        
+        res.send(result)
+      } catch (error) {
+        res.send({message:error.message})
+      }
+    })
+
     // // followers task
 
     app.post("/view-jobs/followers", async (req, res) => {
@@ -392,11 +428,63 @@ async function run() {
         });
         res.json({ message: "deleted successfully", result }).status(200);
       } catch (error) {
-        return res
-          .json({ message: "something went wrong", error: error.message })
-          .status(500);
+        return res.json({ message: 'something went wrong', error: error.message }).status(500)
       }
-    });
+    })
+
+    app.get('/company/jobs', async (req, res) => {
+      try {
+        // console.log(companyJobs);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+        const companyName=req.query.companyName
+      
+        
+
+        let isResult = await companyJobsCollection.deleteMany()
+
+        // console.log(isResult);
+
+        if (isResult.acknowledged == true) {
+          let posted = await companyJobsCollection.insertMany(companyJobs)
+          // return res.send(posted)
+          // console.log(posted);
+
+          const totalJobs = await companyJobsCollection.countDocuments();
+          const totalPages = Math.ceil(totalJobs / limit);
+
+
+          // if (posted.acknowledged == true) {
+          //   let result = await companyJobsCollection.find().toArray()
+          //   return res.send(result)
+          // }
+
+          if (posted.acknowledged == true) {
+            const jobs = await companyJobsCollection.find({})
+              .skip((page - 1) * limit)  // Skip the jobs of previous pages
+              .limit(limit)              // Limit the jobs to 'limit' number
+              .toArray();
+
+            res.json({
+              jobs,
+              totalPages,
+              currentPage: page,
+              totalJobs
+            });
+          }
+
+        }
+
+
+        // let result =await companyJobsCollection.find().toArray()
+        // console.log(result);
+
+
+      } catch (error) {
+
+      }
+    })
+
 
     app.delete("/jobs/:id/apply", verifyToken, async (req, res) => {
       try {
@@ -441,7 +529,7 @@ async function run() {
           data: error.message,
         });
       }
-    });
+    }); 
 
     await client.db("admin").command({ ping: 1 });
     console.log(
