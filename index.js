@@ -57,14 +57,14 @@ async function run() {
     const db = client.db("job-hunting");
     const jobCollection = db.collection("jobs");
     const appliesCollection = db.collection("applies");
-    const companyJobsCollection = db.collection("jobs");
+    const companyJobsCollection = db.collection("companyJobs");
 
     const usersCollection = db.collection("users");
     const companyCollection = db.collection("companies");
 
     // // followers collection
     // // featured collection
-    const featuredcompanyJobsCollection = db.collection("jobs");
+    const featuredcompanyJobsCollection = db.collection("featuredJobs");
     const followersCollection = db.collection('followers')
 
     // await client.connect();
