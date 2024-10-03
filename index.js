@@ -189,10 +189,18 @@ async function run() {
       }
     });
 
-    app.post("/jobs/:id/apply", verifyToken, async (req, res) => {
+    // application information store in db
+    app.post(`/jobs/:id/apply`, verifyToken, async (req, res) => {
       try {
         const jobId = req.params.id;
-        const { applicantName, resumeLink, coverLetter = "" } = req.body;
+        const {
+          applicantName,
+          resumeLink,
+          coverLetter,
+          status = "",
+          jobTitle,
+          companyName,
+        } = req.body;
 
         if (!applicantName || !resumeLink) {
           return res.status(400).send({
@@ -219,6 +227,9 @@ async function run() {
           applicantEmail: req.user.email,
           resumeLink: resumeLink,
           coverLetter: coverLetter,
+          status: status,
+          jobTitle,
+          companyName,
           appliedAt: new Date(),
         };
 
@@ -236,6 +247,28 @@ async function run() {
           data: error.message,
         });
       }
+    });
+
+    //all application info
+    app.get("/applications", async (req, res) => {
+      const result = await appliesCollection.find().toArray();
+      res.send(result);
+    });
+
+    //get application information info by email
+    app.get(`/application`, async (req, res) => {
+      const email = req.query.email;
+      const query = { applicantEmail: email };
+      const result = await appliesCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    //delete application by id
+    app.delete(`/application/:id`, async (req, res) => {
+      const id = req.params.id;
+      const quary = { _id: new ObjectId(id) };
+      const result = await appliesCollection.deleteOne(quary);
+      res.send(result);
     });
 
     app.post("/jobs/new", verifyToken, async (req, res) => {
