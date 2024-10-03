@@ -53,14 +53,13 @@ async function run() {
     const jobCollection = db.collection("jobs");
     const appliesCollection = db.collection("applies");
     const usersCollection = db.collection("users");
+    const companyCollection = db.collection("companies");
 
     // // followers collection
 
     const followersCollection = db.collection("followers");
 
     // await client.connect();
-
-    // jwt token create
     app.post("/jwt", async (req, res) => {
       const { email } = req.body;
       const token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET);
@@ -84,6 +83,7 @@ async function run() {
     });
 
     //user saving in DB route
+
     app.put("/user", async (req, res) => {
       const user = req.body;
       const query = { email: user?.email };
@@ -103,6 +103,11 @@ async function run() {
       res.send(result);
     });
 
+
+    //saving company data into Db
+    app.post("/company-data", async (req, res) => {
+      const query = req.body;
+      const result = await companyCollection.insertOne(query);
 
     //user saving in DB route
     app.put("/user", async (req, res) => {
@@ -224,18 +229,10 @@ async function run() {
       }
     });
 
-    // application information store in db
-    app.post(`/jobs/:id/apply`, verifyToken, async (req, res) => {
+    app.post("/jobs/:id/apply", verifyToken, async (req, res) => {
       try {
         const jobId = req.params.id;
-        const {
-          applicantName,
-          resumeLink,
-          coverLetter,
-          status = "",
-          jobTitle,
-          companyName,
-        } = req.body;
+        const { applicantName, resumeLink, coverLetter = "" } = req.body;
 
         if (!applicantName || !resumeLink) {
           return res.status(400).send({
@@ -262,9 +259,6 @@ async function run() {
           applicantEmail: req.user.email,
           resumeLink: resumeLink,
           coverLetter: coverLetter,
-          status: status,
-          jobTitle,
-          companyName,
           appliedAt: new Date(),
         };
 
@@ -284,28 +278,7 @@ async function run() {
       }
     });
 
-    //all application info
-    app.get("/applications", async (req, res) => {
-      const result = await appliesCollection.find().toArray();
-      res.send(result);
-    });
-
-    //get application information info by email
-    app.get(`/application`, async (req, res) => {
-      const email = req.query.email;
-      const query = { applicantEmail: email };
-      const result = await appliesCollection.find(query).toArray();
-      res.send(result);
-    });
-
-    //delete application by id
-    app.delete(`/application/:id`, async (req, res) => {
-      const id = req.params.id;
-      const quary = { _id: new ObjectId(id) };
-      const result = await appliesCollection.deleteOne(quary);
-      res.send(result);
-    });
-
+    // post job form dashboard
     app.post("/jobs/new", verifyToken, async (req, res) => {
       try {
         const newJob = req.body;
@@ -372,7 +345,7 @@ async function run() {
     app.get("/follower/:email", async (req, res) => {
       try {
         const { email } = req.params;
-        // console.log(email);
+        console.log(email);
 
         // Check if email exists in the collection
         const result = await followersCollection.findOne({ email: email });
