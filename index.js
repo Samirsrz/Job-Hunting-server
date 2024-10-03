@@ -53,14 +53,13 @@ async function run() {
     const jobCollection = db.collection("jobs");
     const appliesCollection = db.collection("applies");
     const usersCollection = db.collection("users");
+    const companyCollection = db.collection("companies");
 
-    // // followers collection
+  // // followers collection
 
-    const followersCollection = db.collection("followers");
+  const followersCollection=db.collection('followers')
 
     // await client.connect();
-
-    // jwt token create
     app.post("/jwt", async (req, res) => {
       const { email } = req.body;
       const token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET);
@@ -83,39 +82,38 @@ async function run() {
       }
     });
 
-    //user saving in DB route
-    app.put("/user", async (req, res) => {
-      const user = req.body;
-      const query = { email: user?.email };
+   //user saving in DB route 
 
-      const isExist = await usersCollection.findOne(query);
-      if (isExist) {
-        return res.send(isExist);
-      }
-      const options = { upsert: true };
-      const updateDoc = {
-        $set: {
-          ...user,
-          timestamp: Date.now(),
-        },
-      };
-      const result = await usersCollection.updateOne(query, updateDoc, options);
-      res.send(result);
-    });
+  app.put('/user', async(req, res) => {
+     const user = req.body;
+     const query = {email : user?.email}
 
-    // get the all user
-    app.get("/users", verifyToken, async (req, res) => {
-      const id = req.body;
-      const result = await usersCollection.find().toArray();
-      res.send(result);
-    });
-    //delete user
-    app.delete(`/user/:id`, verifyToken, async (req, res) => {
-      const id = req.params.id;
-      const quary = { _id: new ObjectId(id) };
-      const result = await usersCollection.deleteOne(quary);
-      res.send(result);
-    });
+     const isExist  = await usersCollection.findOne(query);
+     if(isExist){
+      return res.send(isExist)
+     }
+     const options = {upsert : true}
+     const updateDoc = {
+      $set: {
+        ...user,
+        timestamp: Date.now()
+      },
+     }
+     const result = await usersCollection.updateOne(query, updateDoc, options)
+     res.send(result);
+
+  })
+  
+
+  //saving company data into Db
+  app.post('/company-data', async(req, res) => {
+     const query = req.body;
+     const result = await companyCollection.insertOne(query);
+     res.send(result);
+
+  })
+
+
 
     //  jobs related api
     app.get("/jobs", async (req, res) => {
@@ -202,18 +200,10 @@ async function run() {
       }
     });
 
-    // application information store in db
-    app.post(`/jobs/:id/apply`, verifyToken, async (req, res) => {
+    app.post("/jobs/:id/apply", verifyToken, async (req, res) => {
       try {
         const jobId = req.params.id;
-        const {
-          applicantName,
-          resumeLink,
-          coverLetter,
-          status = "",
-          jobTitle,
-          companyName,
-        } = req.body;
+        const { applicantName, resumeLink, coverLetter = "" } = req.body;
 
         if (!applicantName || !resumeLink) {
           return res.status(400).send({
@@ -240,9 +230,6 @@ async function run() {
           applicantEmail: req.user.email,
           resumeLink: resumeLink,
           coverLetter: coverLetter,
-          status: status,
-          jobTitle,
-          companyName,
           appliedAt: new Date(),
         };
 
@@ -260,28 +247,6 @@ async function run() {
           data: error.message,
         });
       }
-    });
-
-    //all application info
-    app.get("/applications", async (req, res) => {
-      const result = await appliesCollection.find().toArray();
-      res.send(result);
-    });
-
-    //get application information info by email
-    app.get(`/application`, async (req, res) => {
-      const email = req.query.email;
-      const query = { applicantEmail: email };
-      const result = await appliesCollection.find(query).toArray();
-      res.send(result);
-    });
-
-    //delete application by id
-    app.delete(`/application/:id`, async (req, res) => {
-      const id = req.params.id;
-      const quary = { _id: new ObjectId(id) };
-      const result = await appliesCollection.deleteOne(quary);
-      res.send(result);
     });
 
     app.post("/jobs/new", verifyToken, async (req, res) => {
@@ -325,62 +290,53 @@ async function run() {
 
     // // followers task
 
-    app.post("/view-jobs/followers", async (req, res) => {
+    app.post('/view-jobs/followers',async (req,res) => {
       try {
-        let followerInfo = req.body;
-        const followed = await followersCollection.findOne({
-          email: req.body.email,
-        });
+        let followerInfo=req.body
+        const followed = await followersCollection.findOne({ email: req.body.email});
         if (followed) {
-          return res.send({ message: "already included" });
+          return res.send({message:'already included'})
         }
         // console.log(followerInfo);
-        let result = await followersCollection.insertOne(followerInfo);
-        return res.json(result).status(200);
+        let result =await followersCollection.insertOne(followerInfo)
+       return res.json(result).status(200)
       } catch (error) {
-        return res.json(
-          { message: "something went wrong", error: error.message },
-          { status: 500 }
-        );
+        return res.json({message:'something went wrong',error:error.message},{status:500})
       }
-    });
+    })
 
     // //  is follower
 
-    app.get("/follower/:email", async (req, res) => {
+    app.get('/follower/:email', async (req, res) => {
       try {
         const { email } = req.params;
-        // console.log(email);
-
+        console.log(email);
+        
         // Check if email exists in the collection
         const result = await followersCollection.findOne({ email: email });
-
+        
         if (result) {
           console.log(result);
-          res
-            .status(200)
-            .send({ message: "Email found in followers", isFound: true });
+          res.status(200).send({ message: 'Email found in followers', isFound: true });
         } else {
-          res
-            .status(404)
-            .send({ message: "Email not found in followers", isFound: false });
+          res.status(404).send({ message: 'Email not found in followers',isFound:false });
         }
       } catch (error) {
         console.error(error);
         res.status(500).send({ error: error.message });
       }
     });
-
-    app.get("/followers", async (req, res) => {
+    
+    app.get('/followers', async (req, res) => {
       try {
         // Check if email exists in the collection
         const result = await followersCollection.find().toArray();
-
+        
         if (result) {
           console.log(result);
-          res.status(200).send({ message: " followers found", data: result });
+          res.status(200).send({ message: ' followers found', data:result });
         } else {
-          res.status(404).send({ message: " followers not found" });
+          res.status(404).send({ message: ' followers not found'});
         }
       } catch (error) {
         console.error(error);
@@ -390,18 +346,15 @@ async function run() {
 
     // // unfollow
 
-    app.delete("/user/follower/:email", async (req, res) => {
+    app.delete('/user/follower/:email',async (req,res) => {
       try {
-        let result = await followersCollection.deleteOne({
-          email: req.params.email,
-        });
-        res.json({ message: "deleted successfully", result }).status(200);
+        let result=await followersCollection.deleteOne({email:req.params.email})
+        res.json({message:'deleted successfully',result}).status(200)
       } catch (error) {
-        return res
-          .json({ message: "something went wrong", error: error.message })
-          .status(500);
+        return res.json({message:'something went wrong',error:error.message}).status(500)
       }
-    });
+    })
+    
 
     app.delete("/jobs/:id/apply", verifyToken, async (req, res) => {
       try {
