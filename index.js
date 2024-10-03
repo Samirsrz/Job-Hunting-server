@@ -53,6 +53,7 @@ async function run() {
     const jobCollection = db.collection("jobs");
     const appliesCollection = db.collection("applies");
     const usersCollection = db.collection("users");
+    const companyCollection = db.collection("companies");
 
   // // followers collection
 
@@ -102,6 +103,16 @@ async function run() {
      res.send(result);
 
   })
+  
+
+  //saving company data into Db
+  app.post('/company-data', async(req, res) => {
+     const query = req.body;
+     const result = await companyCollection.insertOne(query);
+     res.send(result);
+
+  })
+
 
 
     //  jobs related api
