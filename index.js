@@ -54,11 +54,13 @@ async function run() {
     const appliesCollection = db.collection("applies");
     const usersCollection = db.collection("users");
 
-  // // followers collection
+    // // followers collection
 
-  const followersCollection=db.collection('followers')
+    const followersCollection = db.collection("followers");
 
     // await client.connect();
+
+    // jwt token create
     app.post("/jwt", async (req, res) => {
       const { email } = req.body;
       const token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET);
@@ -81,28 +83,32 @@ async function run() {
       }
     });
 
-   //user saving in DB route 
+    //user saving in DB route
+    app.put("/user", async (req, res) => {
+      const user = req.body;
+      const query = { email: user?.email };
 
-  app.put('/user', async(req, res) => {
-     const user = req.body;
-     const query = {email : user?.email}
+      const isExist = await usersCollection.findOne(query);
+      if (isExist) {
+        return res.send(isExist);
+      }
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          ...user,
+          timestamp: Date.now(),
+        },
+      };
+      const result = await usersCollection.updateOne(query, updateDoc, options);
+      res.send(result);
+    });
 
-     const isExist  = await usersCollection.findOne(query);
-     if(isExist){
-      return res.send(isExist)
-     }
-     const options = {upsert : true}
-     const updateDoc = {
-      $set: {
-        ...user,
-        timestamp: Date.now()
-      },
-     }
-     const result = await usersCollection.updateOne(query, updateDoc, options)
-     res.send(result);
-
-  })
-
+    // get the all user
+    app.get("/users", async (req, res) => {
+      const id = req.body;
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
 
     //  jobs related api
     app.get("/jobs", async (req, res) => {
@@ -312,53 +318,62 @@ async function run() {
 
     // // followers task
 
-    app.post('/view-jobs/followers',async (req,res) => {
+    app.post("/view-jobs/followers", async (req, res) => {
       try {
-        let followerInfo=req.body
-        const followed = await followersCollection.findOne({ email: req.body.email});
+        let followerInfo = req.body;
+        const followed = await followersCollection.findOne({
+          email: req.body.email,
+        });
         if (followed) {
-          return res.send({message:'already included'})
+          return res.send({ message: "already included" });
         }
         // console.log(followerInfo);
-        let result =await followersCollection.insertOne(followerInfo)
-       return res.json(result).status(200)
+        let result = await followersCollection.insertOne(followerInfo);
+        return res.json(result).status(200);
       } catch (error) {
-        return res.json({message:'something went wrong',error:error.message},{status:500})
+        return res.json(
+          { message: "something went wrong", error: error.message },
+          { status: 500 }
+        );
       }
-    })
+    });
 
     // //  is follower
 
-    app.get('/follower/:email', async (req, res) => {
+    app.get("/follower/:email", async (req, res) => {
       try {
         const { email } = req.params;
-        console.log(email);
-        
+        // console.log(email);
+
         // Check if email exists in the collection
         const result = await followersCollection.findOne({ email: email });
-        
+
         if (result) {
           console.log(result);
-          res.status(200).send({ message: 'Email found in followers', isFound: true });
+          res
+            .status(200)
+            .send({ message: "Email found in followers", isFound: true });
         } else {
-          res.status(404).send({ message: 'Email not found in followers',isFound:false });
+          res
+            .status(404)
+            .send({ message: "Email not found in followers", isFound: false });
         }
       } catch (error) {
         console.error(error);
         res.status(500).send({ error: error.message });
       }
     });
-    
-    app.get('/followers', async (req, res) => {
+
+    app.get("/followers", async (req, res) => {
       try {
         // Check if email exists in the collection
         const result = await followersCollection.find().toArray();
-        
+
         if (result) {
           console.log(result);
-          res.status(200).send({ message: ' followers found', data:result });
+          res.status(200).send({ message: " followers found", data: result });
         } else {
-          res.status(404).send({ message: ' followers not found'});
+          res.status(404).send({ message: " followers not found" });
         }
       } catch (error) {
         console.error(error);
@@ -368,15 +383,18 @@ async function run() {
 
     // // unfollow
 
-    app.delete('/user/follower/:email',async (req,res) => {
+    app.delete("/user/follower/:email", async (req, res) => {
       try {
-        let result=await followersCollection.deleteOne({email:req.params.email})
-        res.json({message:'deleted successfully',result}).status(200)
+        let result = await followersCollection.deleteOne({
+          email: req.params.email,
+        });
+        res.json({ message: "deleted successfully", result }).status(200);
       } catch (error) {
-        return res.json({message:'something went wrong',error:error.message}).status(500)
+        return res
+          .json({ message: "something went wrong", error: error.message })
+          .status(500);
       }
-    })
-    
+    });
 
     app.delete("/jobs/:id/apply", verifyToken, async (req, res) => {
       try {
