@@ -55,6 +55,8 @@ async function run() {
     const appliesCollection = db.collection("applies");
     const companyJobsCollection = db.collection("jobs");
     const featuredcompanyJobsCollection = db.collection("jobs");
+    const usersCollection = db.collection("users");
+    const companyCollection = db.collection("companies");
 
     // // followers collection
 
@@ -82,6 +84,39 @@ async function run() {
         res.status(500).send(err);
       }
     });
+
+   //user saving in DB route 
+
+  app.put('/user', async(req, res) => {
+     const user = req.body;
+     const query = {email : user?.email}
+
+     const isExist  = await usersCollection.findOne(query);
+     if(isExist){
+      return res.send(isExist)
+     }
+     const options = {upsert : true}
+     const updateDoc = {
+      $set: {
+        ...user,
+        timestamp: Date.now()
+      },
+     }
+     const result = await usersCollection.updateOne(query, updateDoc, options)
+     res.send(result);
+
+  })
+  
+
+  //saving company data into Db
+  app.post('/company-data', async(req, res) => {
+     const query = req.body;
+     const result = await companyCollection.insertOne(query);
+     res.send(result);
+
+  })
+
+
 
     //  jobs related api
     app.get("/jobs", async (req, res) => {
