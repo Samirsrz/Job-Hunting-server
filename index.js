@@ -4,8 +4,8 @@ require("dotenv").config();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-const companyJobs = require('./companyJobs/companyJobs.js')
-const featuredcompanyJobs = require('./featuredCompanyJobs/featuredCompanyJobs.js')
+const companyJobs = require("./companyJobs/companyJobs.js");
+const featuredcompanyJobs = require("./featuredCompanyJobs/featuredCompanyJobs.js");
 const jwt = require("jsonwebtoken");
 const port = process.env.port || 8000;
 
@@ -15,6 +15,8 @@ const corsOptions = {
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:5175",
+
+
   ],
   credentials: true,
   optionSuccessStatus: 200,
@@ -59,7 +61,8 @@ async function run() {
     const companyCollection = db.collection("companies");
 
     // // followers collection
-
+    // // featured collection
+    const featuredcompanyJobsCollection = db.collection("featuredJobs");
     const followersCollection = db.collection('followers')
 
     // await client.connect();
@@ -85,71 +88,38 @@ async function run() {
       }
     });
 
-   //user saving in DB route 
+    //user saving in DB route 
 
-  app.put('/user', async(req, res) => {
-     const user = req.body;
-     const query = {email : user?.email}
-
-     const isExist  = await usersCollection.findOne(query);
-     if(isExist){
-      return res.send(isExist)
-     }
-     const options = {upsert : true}
-     const updateDoc = {
-      $set: {
-        ...user,
-        timestamp: Date.now()
-      },
-     }
-     const result = await usersCollection.updateOne(query, updateDoc, options)
-     res.send(result);
-
-  })
-  
-
-  //saving company data into Db
-  app.post('/company-data', async(req, res) => {
-     const query = req.body;
-     const result = await companyCollection.insertOne(query);
-     res.send(result);
-
-  })
-
-
-    //user saving in DB route
-    app.put("/user", async (req, res) => {
+    app.put('/user', async (req, res) => {
       const user = req.body;
-      const query = { email: user?.email };
+      const query = { email: user?.email }
 
       const isExist = await usersCollection.findOne(query);
       if (isExist) {
-        return res.send(isExist);
+        return res.send(isExist)
       }
-      const options = { upsert: true };
+      const options = { upsert: true }
       const updateDoc = {
         $set: {
           ...user,
-          timestamp: Date.now(),
+          timestamp: Date.now()
         },
-      };
-      const result = await usersCollection.updateOne(query, updateDoc, options);
+      }
+      const result = await usersCollection.updateOne(query, updateDoc, options)
       res.send(result);
-    });
 
-    // get the all user
-    app.get("/users", verifyToken, async (req, res) => {
-      const id = req.body;
-      const result = await usersCollection.find().toArray();
+    })
+
+
+    //saving company data into Db
+    app.post('/company-data', async (req, res) => {
+      const query = req.body;
+      const result = await companyCollection.insertOne(query);
       res.send(result);
-    });
-    //delete user
-    app.delete(`/user/:id`, verifyToken, async (req, res) => {
-      const id = req.params.id;
-      const quary = { _id: new ObjectId(id) };
-      const result = await usersCollection.deleteOne(quary);
-      res.send(result);
-    });
+
+    })
+
+
 
     //  jobs related api
     app.get("/jobs", async (req, res) => {
@@ -239,7 +209,13 @@ async function run() {
     app.post("/jobs/:id/apply", verifyToken, async (req, res) => {
       try {
         const jobId = req.params.id;
-        const { applicantName, resumeLink, coverLetter = "" } = req.body;
+        const {
+          applicantName,
+          resumeLink,
+          jobTitle,
+          status = "pending",
+          coverLetter = "",
+        } = req.body;
 
         if (!applicantName || !resumeLink) {
           return res.status(400).send({
@@ -266,6 +242,8 @@ async function run() {
           applicantEmail: req.user.email,
           resumeLink: resumeLink,
           coverLetter: coverLetter,
+          status: status,
+          jobTitle,
           appliedAt: new Date(),
         };
 
@@ -283,6 +261,28 @@ async function run() {
           data: error.message,
         });
       }
+    });
+
+    //all application info
+    app.get("/applications", async (req, res) => {
+      const result = await appliesCollection.find().toArray();
+      res.send(result);
+    });
+
+    //get application information info by email
+    app.get(`/application`, async (req, res) => {
+      const email = req.query.email;
+      const query = { applicantEmail: email };
+      const result = await appliesCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    //delete application by id
+    app.delete(`/application/:id`, async (req, res) => {
+      const id = req.params.id;
+      const quary = { _id: new ObjectId(id) };
+      const result = await appliesCollection.deleteOne(quary);
+      res.send(result);
     });
 
     app.post("/jobs/new", verifyToken, async (req, res) => {
@@ -326,24 +326,24 @@ async function run() {
 
     // // featured jobs
 
-
     app.get("/featured/jobs", async (req, res) => {
       try {
-        let isResult = await featuredcompanyJobsCollection.deleteMany()
+        let isResult = await featuredcompanyJobsCollection.deleteMany();
 
         console.log(isResult);
 
         if (isResult.acknowledged == true) {
-          let posted = await featuredcompanyJobsCollection.insertMany(featuredcompanyJobs)
+          let posted = await featuredcompanyJobsCollection.insertMany(
+            featuredcompanyJobs
+          );
           // return res.send(posted)
           console.log(posted);
           if (posted.acknowledged == true) {
-            let result = await featuredcompanyJobsCollection.find().toArray()
+            let result = await featuredcompanyJobsCollection.find().toArray();
             console.log(result);
-            
+
             res.send(result)
           }
-
         }
       } catch (error) {
         res.status(400).send({
@@ -356,40 +356,45 @@ async function run() {
 
     // // get data by id
 
-    app.get('/featured/jobs/:id',async (req,res) => {
+    app.get('/featured/jobs/:id', async (req, res) => {
       try {
-        let id=req.params.id
+        let id = req.params.id
         console.log(id);
-        
-        let result=await featuredcompanyJobsCollection.findOne({_id:new ObjectId(id)})
+
+        let result = await featuredcompanyJobsCollection.findOne({ _id: new ObjectId(id) })
         console.log(result);
-        
+
         res.send(result)
       } catch (error) {
-        res.send({message:error.message})
+        res.send({ message: error.message })
       }
-    })
+    });
 
     // // followers task
 
-    app.post('/view-jobs/followers', async (req, res) => {
+    app.post("/view-jobs/followers", async (req, res) => {
       try {
-        let followerInfo = req.body
-        const followed = await followersCollection.findOne({ email: req.body.email });
+        let followerInfo = req.body;
+        const followed = await followersCollection.findOne({
+          email: req.body.email,
+        });
         if (followed) {
-          return res.send({ message: 'already included' })
+          return res.send({ message: "already included" });
         }
         // console.log(followerInfo);
-        let result = await followersCollection.insertOne(followerInfo)
-        return res.json(result).status(200)
+        let result = await followersCollection.insertOne(followerInfo);
+        return res.json(result).status(200);
       } catch (error) {
-        return res.json({ message: 'something went wrong', error: error.message }, { status: 500 })
+        return res.json(
+          { message: "something went wrong", error: error.message },
+          { status: 500 }
+        );
       }
-    })
+    });
 
     // //  is follower
 
-    app.get('/follower/:email', async (req, res) => {
+    app.get("/follower/:email", async (req, res) => {
       try {
         const { email } = req.params;
         console.log(email);
@@ -399,9 +404,13 @@ async function run() {
 
         if (result) {
           console.log(result);
-          res.status(200).send({ message: 'Email found in followers', isFound: true });
+          res
+            .status(200)
+            .send({ message: "Email found in followers", isFound: true });
         } else {
-          res.status(404).send({ message: 'Email not found in followers', isFound: false });
+          res
+            .status(404)
+            .send({ message: "Email not found in followers", isFound: false });
         }
       } catch (error) {
         console.error(error);
@@ -409,16 +418,16 @@ async function run() {
       }
     });
 
-    app.get('/followers', async (req, res) => {
+    app.get("/followers", async (req, res) => {
       try {
         // Check if email exists in the collection
         const result = await followersCollection.find().toArray();
 
         if (result) {
           console.log(result);
-          res.status(200).send({ message: ' followers found', data: result });
+          res.status(200).send({ message: " followers found", data: result });
         } else {
-          res.status(404).send({ message: ' followers not found' });
+          res.status(404).send({ message: " followers not found" });
         }
       } catch (error) {
         console.error(error);
@@ -428,36 +437,39 @@ async function run() {
 
     // // unfollow
 
-    app.delete('/user/follower/:email', async (req, res) => {
+    app.delete("/user/follower/:email", async (req, res) => {
       try {
-        let result = await followersCollection.deleteOne({ email: req.params.email })
-        res.json({ message: 'deleted successfully', result }).status(200)
+        let result = await followersCollection.deleteOne({
+          email: req.params.email,
+        });
+        res.json({ message: "deleted successfully", result }).status(200);
       } catch (error) {
-        return res.json({ message: 'something went wrong', error: error.message }).status(500)
+        return res
+          .json({ message: "something went wrong", error: error.message })
+          .status(500);
       }
-    })
+    });
 
-    app.get('/company/jobs', async (req, res) => {
+    app.get("/company/jobs", async (req, res) => {
       try {
         // console.log(companyJobs);
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
-        const companyName=req.query.companyName
-      
-        
+        const companyName = req.query.companyName
+
+
 
         let isResult = await companyJobsCollection.deleteMany()
 
         // console.log(isResult);
 
         if (isResult.acknowledged == true) {
-          let posted = await companyJobsCollection.insertMany(companyJobs)
+          let posted = await companyJobsCollection.insertMany(companyJobs);
           // return res.send(posted)
           // console.log(posted);
 
           const totalJobs = await companyJobsCollection.countDocuments();
           const totalPages = Math.ceil(totalJobs / limit);
-
 
           // if (posted.acknowledged == true) {
           //   let result = await companyJobsCollection.find().toArray()
@@ -465,31 +477,25 @@ async function run() {
           // }
 
           if (posted.acknowledged == true) {
-            const jobs = await companyJobsCollection.find({})
-              .skip((page - 1) * limit)  // Skip the jobs of previous pages
-              .limit(limit)              // Limit the jobs to 'limit' number
+            const jobs = await companyJobsCollection
+              .find({})
+              .skip((page - 1) * limit) // Skip the jobs of previous pages
+              .limit(limit) // Limit the jobs to 'limit' number
               .toArray();
 
             res.json({
               jobs,
               totalPages,
               currentPage: page,
-              totalJobs
+              totalJobs,
             });
           }
-
         }
-
 
         // let result =await companyJobsCollection.find().toArray()
         // console.log(result);
-
-
-      } catch (error) {
-
-      }
-    })
-
+      } catch (error) {}
+    });
 
     app.delete("/jobs/:id/apply", verifyToken, async (req, res) => {
       try {
