@@ -15,8 +15,8 @@ const corsOptions = {
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:5175",
-
-    "https://job-hunting-job-seekers.vercel.app",
+    "https://job-hunting-sepia.vercel.app",
+    "https://job-hunting-52137.web.app",
   ],
   credentials: true,
   optionSuccessStatus: 200,
