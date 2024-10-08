@@ -51,9 +51,7 @@ const client = new MongoClient(uri, {
 });
 
 async function run() {
-
   try {
-
     const db = client.db("job-hunting");
     const jobCollection = db.collection("jobs");
     const appliesCollection = db.collection("applies");
@@ -65,7 +63,7 @@ async function run() {
     // // followers collection
     // // featured collection
     const featuredcompanyJobsCollection = db.collection("featuredJobs");
-    const followersCollection = db.collection('followers')
+    const followersCollection = db.collection("followers");
 
     // await client.connect();
     app.post("/jwt", async (req, res) => {
@@ -90,38 +88,47 @@ async function run() {
       }
     });
 
-    //user saving in DB route 
+    //user saving in DB route
 
-    app.put('/user', async (req, res) => {
+    app.put("/user", async (req, res) => {
       const user = req.body;
-      const query = { email: user?.email }
+      const query = { email: user?.email };
 
       const isExist = await usersCollection.findOne(query);
       if (isExist) {
-        return res.send(isExist)
+        return res.send(isExist);
       }
-      const options = { upsert: true }
+      const options = { upsert: true };
       const updateDoc = {
         $set: {
           ...user,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         },
-      }
-      const result = await usersCollection.updateOne(query, updateDoc, options)
+      };
+      const result = await usersCollection.updateOne(query, updateDoc, options);
       res.send(result);
+    });
 
-    })
-
+    // get the all user
+    app.get("/users", async (req, res) => {
+      const id = req.body;
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+    //delete user
+    app.delete(`/user/:id`, verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const quary = { _id: new ObjectId(id) };
+      const result = await usersCollection.deleteOne(quary);
+      res.send(result);
+    });
 
     //saving company data into Db
-    app.post('/company-data', async (req, res) => {
+    app.post("/company-data", async (req, res) => {
       const query = req.body;
       const result = await companyCollection.insertOne(query);
       res.send(result);
-
-    })
-
-
+    });
 
     //  jobs related api
     app.get("/jobs", async (req, res) => {
@@ -326,7 +333,6 @@ async function run() {
       }
     });
 
-
     // // featured jobs
 
     app.get("/featured/jobs", async (req, res) => {
@@ -345,7 +351,7 @@ async function run() {
             let result = await featuredcompanyJobsCollection.find().toArray();
             console.log(result);
 
-            res.send(result)
+            res.send(result);
           }
         }
       } catch (error) {
@@ -359,17 +365,19 @@ async function run() {
 
     // // get data by id
 
-    app.get('/featured/jobs/:id', async (req, res) => {
+    app.get("/featured/jobs/:id", async (req, res) => {
       try {
-        let id = req.params.id
+        let id = req.params.id;
         console.log(id);
 
-        let result = await featuredcompanyJobsCollection.findOne({ _id: new ObjectId(id) })
+        let result = await featuredcompanyJobsCollection.findOne({
+          _id: new ObjectId(id),
+        });
         console.log(result);
 
-        res.send(result)
+        res.send(result);
       } catch (error) {
-        res.send({ message: error.message })
+        res.send({ message: error.message });
       }
     });
 
@@ -458,11 +466,9 @@ async function run() {
         // console.log(companyJobs);
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
-        const companyName = req.query.companyName
+        const companyName = req.query.companyName;
 
-
-
-        let isResult = await companyJobsCollection.deleteMany()
+        let isResult = await companyJobsCollection.deleteMany();
 
         // console.log(isResult);
 
