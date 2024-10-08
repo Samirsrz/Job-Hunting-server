@@ -7,7 +7,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const companyJobs = require("./companyJobs/companyJobs.js");
 const featuredcompanyJobs = require("./featuredCompanyJobs/featuredCompanyJobs.js");
 const jwt = require("jsonwebtoken");
-const port = process.env.port || 8000;
+let port = process.env.port || 8000;
 
 // middleware
 const corsOptions = {
@@ -15,8 +15,6 @@ const corsOptions = {
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:5175",
-
-
   ],
   credentials: true,
   optionSuccessStatus: 200,
@@ -51,12 +49,14 @@ const client = new MongoClient(uri, {
 });
 
 async function run() {
+
   try {
+
     const db = client.db("job-hunting");
     const jobCollection = db.collection("jobs");
     const appliesCollection = db.collection("applies");
-    const companyJobsCollection = db.collection("jobs");
-    const featuredcompanyJobsCollection = db.collection("jobs");
+    const companyJobsCollection = db.collection("companyJobs");
+
     const usersCollection = db.collection("users");
     const companyCollection = db.collection("companies");
 
@@ -323,6 +323,7 @@ async function run() {
         });
       }
     });
+
 
     // // featured jobs
 
