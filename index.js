@@ -330,6 +330,168 @@ async function run() {
       }
     });
 
+    app.post("/jobs/:id/review", verifyToken, async (req, res) => {
+      try {
+        const { review, rating } = req.body;
+        const { email } = req.user;
+        const jobId = req.params.id;
+
+        if (!rating || rating < 1 || rating > 5) {
+          return res.status(400).send({
+            success: false,
+            message: "Rating must be between 1 and 5.",
+            data: null,
+          });
+        }
+
+        const job = await jobCollection.findOne({ _id: new ObjectId(jobId) });
+        if (!job) {
+          return res.status(404).send({
+            success: false,
+            message: "Job not found",
+            data: null,
+          });
+        }
+
+        const existingReview = job.reviews?.find(
+          (review) => review.email === email
+        );
+
+        if (existingReview) {
+          const result = await jobCollection.updateOne(
+            { _id: new ObjectId(jobId), "reviews.email": email },
+            {
+              $set: {
+                "reviews.$.review": review,
+                "reviews.$.rating": rating,
+                "reviews.$.updatedAt": new Date(),
+              },
+            }
+          );
+        } else {
+          const newReview = {
+            email,
+            review,
+            rating,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+
+          const result = await jobCollection.updateOne(
+            { _id: new ObjectId(jobId) },
+            { $push: { reviews: newReview } }
+          );
+
+          if (result.modifiedCount === 0) {
+            return res.status(400).send({
+              success: false,
+              message: "Failed to add review",
+              data: null,
+            });
+          }
+        }
+
+        const updatedJob = await jobCollection.findOne({
+          _id: new ObjectId(jobId),
+        });
+        const reviews = updatedJob.reviews || [];
+
+        const avgRating =
+          reviews.reduce((acc, review) => acc + review.rating, 0) /
+          reviews.length;
+
+        await jobCollection.updateOne(
+          { _id: new ObjectId(jobId) },
+          { $set: { rating: avgRating } }
+        );
+
+        return res.send({
+          success: true,
+          message: existingReview
+            ? "Review updated successfully"
+            : "Review added successfully",
+          data: null,
+        });
+      } catch (error) {
+        console.log(error);
+        res.status(500).send({
+          success: false,
+          message: "Something went wrong",
+          data: error.message,
+        });
+      }
+    });
+
+    app.delete("/jobs/:id/review", verifyToken, async (req, res) => {
+      try {
+        const { email } = req.user;
+        const jobId = req.params.id;
+
+        const job = await jobCollection.findOne({ _id: new ObjectId(jobId) });
+        if (!job) {
+          return res.status(404).send({
+            success: false,
+            message: "Job not found",
+            data: null,
+          });
+        }
+
+        const existingReview = job.reviews?.find(
+          (review) => review.email === email
+        );
+
+        if (!existingReview) {
+          return res.status(404).send({
+            success: false,
+            message: "Review not found for this user",
+            data: null,
+          });
+        }
+
+        const result = await jobCollection.updateOne(
+          { _id: new ObjectId(jobId) },
+          { $pull: { reviews: { email } } }
+        );
+
+        if (result.modifiedCount === 0) {
+          return res.status(400).send({
+            success: false,
+            message: "Failed to delete review",
+            data: null,
+          });
+        }
+
+        const updatedJob = await jobCollection.findOne({
+          _id: new ObjectId(jobId),
+        });
+        const reviews = updatedJob.reviews || [];
+
+        const avgRating =
+          reviews.length > 0
+            ? reviews.reduce((acc, review) => acc + review.rating, 0) /
+              reviews.length
+            : 0;
+
+        await jobCollection.updateOne(
+          { _id: new ObjectId(jobId) },
+          { $set: { rating: avgRating } }
+        );
+
+        return res.send({
+          success: true,
+          message: "Review deleted successfully",
+          data: null,
+        });
+      } catch (error) {
+        console.log(error);
+        res.status(500).send({
+          success: false,
+          message: "Something went wrong",
+          data: error.message,
+        });
+      }
+    });
+
     //all application info
     app.get("/applications", async (req, res) => {
       const result = await appliesCollection.find().toArray();
