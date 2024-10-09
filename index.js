@@ -118,8 +118,8 @@ async function run() {
     //delete user
     app.delete(`/user/:id`, verifyToken, async (req, res) => {
       const id = req.params.id;
-      const quary = { _id: new ObjectId(id) };
-      const result = await usersCollection.deleteOne(quary);
+      const query = { _id: new ObjectId(id) };
+      const result = await usersCollection.deleteOne(query);
       res.send(result);
     });
 
@@ -227,6 +227,42 @@ async function run() {
           success: true,
           message: `${result?.title ?? "Job"} get successfully`,
           data: result,
+        });
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          data: error,
+        });
+      }
+    });
+
+    app.get("/jobs/:id/related", async (req, res) => {
+      try {
+        const jobId = req.params.id;
+
+        const job = await jobCollection.findOne({ _id: new ObjectId(jobId) });
+        if (!job) {
+          return res.status(400).send({
+            success: false,
+            message: "Job not found",
+            data: error,
+          });
+        }
+
+        const relatedJobs = await jobCollection
+          .find({
+            category: job.category,
+            _id: { $ne: new ObjectId(jobId) },
+          })
+          .project({ logo: 1, title: 1, description: 1, reviews: 1, rating: 1 })
+          .limit(4)
+          .toArray();
+
+        return res.status(200).send({
+          success: true,
+          message: `${job?.category} related get successfully`,
+          data: relatedJobs,
         });
       } catch (error) {
         res.status(400).send({
