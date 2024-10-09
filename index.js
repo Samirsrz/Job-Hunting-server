@@ -12,7 +12,6 @@ const multer = require('multer');
 const Grid = require('gridfs-stream')
 const GridFSBucket = require('mongodb').GridFSBucket;
 const stream = require('stream');
-
 // middleware
 const corsOptions = {
   origin: [
@@ -281,8 +280,18 @@ async function run() {
       }
     });
 
-    app.post("/jobs/:id/apply", verifyToken, async (req, res) => {
+   app.post("/jobs/:id/apply", upload.single('file'), verifyToken, async (req, res) => {
       try {
+          const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
+          const readableStream = new stream.Readable();
+          readableStream.push(req.file.buffer);
+          readableStream.push(null); 
+          const uploadStream = bucket.openUploadStream(req.file.originalname, {
+              contentType: req.file.mimetype,
+          });
+          readableStream.pipe(uploadStream);  
+          uploadStream.on('finish', async () => {
+            try {
         const jobId = req.params.id;
         const {
         
@@ -339,11 +348,6 @@ async function run() {
           return res.status(500).json({ message: 'Server Error', error: err });
       }
   });
-
-
-
-
-
 
 
     app.post("/jobs/:id/review", verifyToken, async (req, res) => {
