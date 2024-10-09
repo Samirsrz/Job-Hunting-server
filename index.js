@@ -8,6 +8,10 @@ const companyJobs = require("./companyJobs/companyJobs.js");
 const featuredcompanyJobs = require("./featuredCompanyJobs/featuredCompanyJobs.js");
 const jwt = require("jsonwebtoken");
 let port = process.env.port || 8000;
+const multer = require('multer');
+const Grid = require('gridfs-stream')
+const GridFSBucket = require('mongodb').GridFSBucket;
+const stream = require('stream');
 
 // middleware
 const corsOptions = {
@@ -53,6 +57,10 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const db = client.db("job-hunting");
+
+    const storage = multer.memoryStorage();
+    const upload = multer({ storage: storage });
+
     const jobCollection = db.collection("jobs");
     const appliesCollection = db.collection("applies");
     const companyJobsCollection = db.collection("companyJobs");
@@ -215,23 +223,84 @@ async function run() {
       }
     });
 
-    app.post("/jobs/:id/apply", verifyToken, async (req, res) => {
+    // app.post("/jobs/:id/apply",upload.single('file'), verifyToken, async (req, res) => {
+
+    //   // try {
+    //   //   const jobId = req.params.id;
+    //   //   const {
+    //   //     applicantName,
+    //   //     resumeLink,
+    //   //     jobTitle,
+    //   //     status = "pending",
+    //   //     coverLetter = "",
+    //   //   } = req.body;
+
+    //   //   if (!applicantName || !resumeLink) {
+    //   //     return res.status(400).send({
+    //   //       success: false,
+    //   //       message: "Missing required application information",
+    //   //     });
+    //   //   }
+
+    //   //   const existingApplication = await appliesCollection.findOne({
+    //   //     jobId: jobId,
+    //   //     applicantEmail: req.user.email,
+    //   //   });
+
+    //   //   if (existingApplication) {
+    //   //     return res.status(400).send({
+    //   //       success: false,
+    //   //       message: "You have already applied for this job",
+    //   //     });
+    //   //   }
+
+    //   //   const application = {
+    //   //     jobId: jobId,
+    //   //     applicantName: applicantName,
+    //   //     applicantEmail: req.user.email,
+    //   //     resumeLink: resumeLink,
+    //   //     coverLetter: coverLetter,
+    //   //     status: status,
+    //   //     jobTitle,
+    //   //     appliedAt: new Date(),
+    //   //   };
+
+    //   //   const result = await appliesCollection.insertOne(application);
+
+    //   //   res.status(201).send({
+    //   //     success: true,
+    //   //     message: "Application submitted successfully",
+    //   //     data: result,
+    //   //   });
+    //   // } catch (error) {
+    //   //   res.status(500).send({
+    //   //     success: false,
+    //   //     message: "Something went wrong",
+    //   //     data: error.message,
+    //   //   });
+    //   // }
+    // });
+
+
+    app.post("/jobs/:id/apply", upload.single('file'), verifyToken, async (req, res) => {
       try {
+          const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
+          const readableStream = new stream.Readable();
+          readableStream.push(req.file.buffer);
+          readableStream.push(null); 
+          const uploadStream = bucket.openUploadStream(req.file.originalname, {
+              contentType: req.file.mimetype,
+          });
+          readableStream.pipe(uploadStream);  
+          uploadStream.on('finish', async () => {
+            try {
         const jobId = req.params.id;
         const {
-          applicantName,
-          resumeLink,
+        
           jobTitle,
-          status = "pending",
+        
           coverLetter = "",
         } = req.body;
-
-        if (!applicantName || !resumeLink) {
-          return res.status(400).send({
-            success: false,
-            message: "Missing required application information",
-          });
-        }
 
         const existingApplication = await appliesCollection.findOne({
           jobId: jobId,
@@ -247,14 +316,14 @@ async function run() {
 
         const application = {
           jobId: jobId,
-          applicantName: applicantName,
           applicantEmail: req.user.email,
-          resumeLink: resumeLink,
-          coverLetter: coverLetter,
-          status: status,
+          resume : uploadStream.id,
+          coverLetter,
+          status: 'pending',
           jobTitle,
           appliedAt: new Date(),
         };
+           
 
         const result = await appliesCollection.insertOne(application);
 
@@ -270,7 +339,23 @@ async function run() {
           data: error.message,
         });
       }
-    });
+          });
+  
+          uploadStream.on('error', (err) => {
+              console.error(err);
+              return res.status(500).json({ message: 'Error uploading file', error: err });
+          });
+      } catch (err) {
+          console.error(err);
+          return res.status(500).json({ message: 'Server Error', error: err });
+      }
+  });
+
+
+
+
+
+
 
     //all application info
     app.get("/applications", async (req, res) => {
