@@ -297,6 +297,26 @@ async function run() {
     });
 
 
+    // // company jobs collection 
+
+
+        // // get data by id
+
+        app.get('/company/collection/jobs/:id', async (req, res) => {
+          try {
+            let id = req.params.id
+            console.log(id);
+    
+            let result = await companyJobsCollection.findOne({ _id: new ObjectId(id) })
+            console.log(result);
+    
+            res.send(result)
+          } catch (error) {
+            res.send({ message: error.message })
+          }
+        })
+    
+    
     // // featured jobs
 
 

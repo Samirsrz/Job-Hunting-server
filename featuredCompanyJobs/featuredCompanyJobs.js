@@ -6,7 +6,7 @@ let featuredcompanyJobs=[
         "ratings": "4.0",
         "reviews": "120.5k",
         "cover_photo": "https://static.ambitionbox.com/alpha/company/photos/banner/desktop/cognizant_1920x534.jpg",
-        "company_title": "Leading with Digital Innovation",
+        "company_title": " Digital Innovation",
         "tags": [
             "IT Services",
             "Consulting",
@@ -16,7 +16,7 @@ let featuredcompanyJobs=[
         ]
     },
     {
-        "logo": "https://img.naukimg.com/logo_images/groups/v1/32271.gif",
+        "logo": "https://img.naukimg.com/logo_images/groups/v1/5239022.gif",
         "short_description": "Shape the future at Accenture",
         "companyName": "Accenture",
         "ratings": "4.2",
@@ -32,7 +32,7 @@ let featuredcompanyJobs=[
         ]
     },
     {
-        "logo": "https://img.naukimg.com/logo_images/groups/v1/32272.gif",
+        "logo": "https://img.naukimg.com/logo_images/groups/v1/9558.gif",
         "short_description": "Join a team of leaders at TCS",
         "companyName": "TCS",
         "ratings": "3.9",
@@ -48,9 +48,9 @@ let featuredcompanyJobs=[
         ]
     },
     {
-        "logo": "https://img.naukimg.com/logo_images/groups/v1/32273.gif",
-        "short_description": "Innovate with Infosys",
-        "companyName": "Infosys",
+        "logo": "https://img.naukimg.com/logo_images/groups/v1/9714941.gif",
+        "short_description": "Innovate with Actalent",
+        "companyName": "Actalent",
         "ratings": "4.1",
         "reviews": "90.8k",
         "cover_photo": "https://static.ambitionbox.com/alpha/company/photos/banner/desktop/infosys_1920x534.jpg",
@@ -64,7 +64,7 @@ let featuredcompanyJobs=[
         ]
     },
     {
-        "logo": "https://img.naukimg.com/logo_images/groups/v1/32274.gif",
+        "logo": "https://img.naukimg.com/logo_images/groups/v1/3835862.gif",
         "short_description": "Lead innovation with IBM",
         "companyName": "IBM",
         "ratings": "4.0",
@@ -80,7 +80,7 @@ let featuredcompanyJobs=[
         ]
     },
     {
-        "logo": "https://img.naukimg.com/logo_images/groups/v1/32275.gif",
+        "logo": "https://img.naukimg.com/logo_images/groups/v1/214440.gif",
         "short_description": "Explore groundbreaking healthcare at Medtronic",
         "companyName": "Medtronic",
         "ratings": "4.1",
@@ -96,7 +96,7 @@ let featuredcompanyJobs=[
         ]
     },
     {
-        "logo": "https://img.naukimg.com/logo_images/groups/v1/32276.gif",
+        "logo": "https://img.naukimg.com/logo_images/groups/v1/5935206.gif",
         "short_description": "Join a global leader in pharmaceuticals at Pfizer",
         "companyName": "Pfizer",
         "ratings": "4.3",
@@ -112,7 +112,7 @@ let featuredcompanyJobs=[
         ]
     },
     {
-        "logo": "https://img.naukimg.com/logo_images/groups/v1/32277.gif",
+        "logo": "https://img.naukimg.com/logo_images/groups/v1/223346.gif",
         "short_description": "Shape the future of healthcare with Roche",
         "companyName": "Roche",
         "ratings": "4.2",
@@ -128,7 +128,7 @@ let featuredcompanyJobs=[
         ]
     },
     {
-        "logo": "https://img.naukimg.com/logo_images/groups/v1/32278.gif",
+        "logo": "https://img.naukimg.com/logo_images/groups/v1/42932.gif",
         "short_description": "Innovate with Novartis in global health",
         "companyName": "Novartis",
         "ratings": "4.1",
