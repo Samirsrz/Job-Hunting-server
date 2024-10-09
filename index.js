@@ -373,6 +373,7 @@ async function run() {
     // // company jobs collection 
 
     // // random 5 data get from collection
+    
 
     app.get('/company/collection/interested', async (req, res) => {
       try {
@@ -407,17 +408,18 @@ async function run() {
     // // featured company jobs
 
 
-    app.get('featured/company/jobs', async (req, res) => {
+    
+    app.get('/featured/company/jobs', async (req, res) => {
       try {
         // console.log(companyJobs);
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 24;
+        const limit = parseInt(req.query.limit) || 12;
         const companyName = req.query.companyName
 
         const totalJobs = await featuredcompanyJobsCollection.countDocuments();
         const totalPages = Math.ceil(totalJobs / limit);
 
-        if (posted.acknowledged == true) {
+       {
           const jobs = await featuredcompanyJobsCollection.find({})
             .skip((page - 1) * limit)  // Skip the jobs of previous pages
             .limit(limit)              // Limit the jobs to 'limit' number
@@ -436,7 +438,6 @@ async function run() {
       }
     })
 
-    
     // // featured jobs
 
     app.get("/featured/jobs", async (req, res) => {
