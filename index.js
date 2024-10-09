@@ -126,8 +126,30 @@ async function run() {
     //delete user
     app.delete(`/user/:id`, verifyToken, async (req, res) => {
       const id = req.params.id;
-      const quary = { _id: new ObjectId(id) };
-      const result = await usersCollection.deleteOne(quary);
+      const query = { _id: new ObjectId(id) };
+      const result = await usersCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    //get user information info by email
+    app.get(`/user`, async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const result = await usersCollection.findOne(query);
+      res.send(result);
+    });
+
+    //create admin form admin
+    app.put(`/user/:id`, verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: "admin",
+        },
+      };
+
+      const result = await usersCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
 
@@ -223,77 +245,44 @@ async function run() {
       }
     });
 
-    // app.post("/jobs/:id/apply",upload.single('file'), verifyToken, async (req, res) => {
-
-    //   // try {
-    //   //   const jobId = req.params.id;
-    //   //   const {
-    //   //     applicantName,
-    //   //     resumeLink,
-    //   //     jobTitle,
-    //   //     status = "pending",
-    //   //     coverLetter = "",
-    //   //   } = req.body;
-
-    //   //   if (!applicantName || !resumeLink) {
-    //   //     return res.status(400).send({
-    //   //       success: false,
-    //   //       message: "Missing required application information",
-    //   //     });
-    //   //   }
-
-    //   //   const existingApplication = await appliesCollection.findOne({
-    //   //     jobId: jobId,
-    //   //     applicantEmail: req.user.email,
-    //   //   });
-
-    //   //   if (existingApplication) {
-    //   //     return res.status(400).send({
-    //   //       success: false,
-    //   //       message: "You have already applied for this job",
-    //   //     });
-    //   //   }
-
-    //   //   const application = {
-    //   //     jobId: jobId,
-    //   //     applicantName: applicantName,
-    //   //     applicantEmail: req.user.email,
-    //   //     resumeLink: resumeLink,
-    //   //     coverLetter: coverLetter,
-    //   //     status: status,
-    //   //     jobTitle,
-    //   //     appliedAt: new Date(),
-    //   //   };
-
-    //   //   const result = await appliesCollection.insertOne(application);
-
-    //   //   res.status(201).send({
-    //   //     success: true,
-    //   //     message: "Application submitted successfully",
-    //   //     data: result,
-    //   //   });
-    //   // } catch (error) {
-    //   //   res.status(500).send({
-    //   //     success: false,
-    //   //     message: "Something went wrong",
-    //   //     data: error.message,
-    //   //   });
-    //   // }
-    // });
-
-
-    app.post("/jobs/:id/apply", upload.single('file'), verifyToken, async (req, res) => {
+    app.get("/jobs/:id/related", async (req, res) => {
       try {
-          const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
-          const readableStream = new stream.Readable();
-          readableStream.push(req.file.buffer);
-          readableStream.push(null); 
-          const uploadStream = bucket.openUploadStream(req.file.originalname, {
-              contentType: req.file.mimetype,
+        const jobId = req.params.id;
+
+        const job = await jobCollection.findOne({ _id: new ObjectId(jobId) });
+        if (!job) {
+          return res.status(400).send({
+            success: false,
+            message: "Job not found",
+            data: error,
           });
-          readableStream.pipe(uploadStream);  
-          uploadStream.on('finish', async () => {
-            try {
+        }
+
+        const relatedJobs = await jobCollection
+          .find({
+            category: job.category,
+            _id: { $ne: new ObjectId(jobId) },
+          })
+          .project({ logo: 1, title: 1, description: 1, reviews: 1, rating: 1 })
+          .limit(4)
+          .toArray();
+
+        return res.status(200).send({
+          success: true,
+          message: `${job?.category} related get successfully`,
+          data: relatedJobs,
+        });
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          data: error,
+        });
+      }
+    });
+
+    app.post("/jobs/:id/apply", verifyToken, async (req, res) => {
+      try {
         const jobId = req.params.id;
         const {
         
