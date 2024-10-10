@@ -8,7 +8,10 @@ const companyJobs = require("./companyJobs/companyJobs.js");
 const featuredcompanyJobs = require("./featuredCompanyJobs/featuredCompanyJobs.js");
 const jwt = require("jsonwebtoken");
 let port = process.env.port || 8000;
-
+const multer = require('multer');
+const Grid = require('gridfs-stream')
+const GridFSBucket = require('mongodb').GridFSBucket;
+const stream = require('stream');
 // middleware
 const corsOptions = {
   origin: [
@@ -53,6 +56,10 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const db = client.db("job-hunting");
+
+    const storage = multer.memoryStorage();
+    const upload = multer({ storage: storage });
+
     const jobCollection = db.collection("jobs");
     const appliesCollection = db.collection("applies");
     const companyJobsCollection = db.collection("companyJobs");
@@ -273,23 +280,25 @@ async function run() {
       }
     });
 
-    app.post("/jobs/:id/apply", verifyToken, async (req, res) => {
+   app.post("/jobs/:id/apply", upload.single('file'), verifyToken, async (req, res) => {
       try {
+          const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
+          const readableStream = new stream.Readable();
+          readableStream.push(req.file.buffer);
+          readableStream.push(null); 
+          const uploadStream = bucket.openUploadStream(req.file.originalname, {
+              contentType: req.file.mimetype,
+          });
+          readableStream.pipe(uploadStream);  
+          uploadStream.on('finish', async () => {
+            try {
         const jobId = req.params.id;
         const {
-          applicantName,
-          resumeLink,
+        
           jobTitle,
-          status = "pending",
+        
           coverLetter = "",
         } = req.body;
-
-        if (!applicantName || !resumeLink) {
-          return res.status(400).send({
-            success: false,
-            message: "Missing required application information",
-          });
-        }
 
         const existingApplication = await appliesCollection.findOne({
           jobId: jobId,
@@ -305,14 +314,14 @@ async function run() {
 
         const application = {
           jobId: jobId,
-          applicantName: applicantName,
           applicantEmail: req.user.email,
-          resumeLink: resumeLink,
-          coverLetter: coverLetter,
-          status: status,
+          resume : uploadStream.id,
+          coverLetter,
+          status: 'pending',
           jobTitle,
           appliedAt: new Date(),
         };
+           
 
         const result = await appliesCollection.insertOne(application);
 
@@ -322,6 +331,179 @@ async function run() {
           data: result,
         });
       } catch (error) {
+        res.status(500).send({
+          success: false,
+          message: "Something went wrong",
+          data: error.message,
+        });
+      }
+          });
+  
+          uploadStream.on('error', (err) => {
+              console.error(err);
+              return res.status(500).json({ message: 'Error uploading file', error: err });
+          });
+      } catch (err) {
+          console.error(err);
+          return res.status(500).json({ message: 'Server Error', error: err });
+      }
+  });
+
+
+    app.post("/jobs/:id/review", verifyToken, async (req, res) => {
+      try {
+        const { review, rating } = req.body;
+        const { email } = req.user;
+        const jobId = req.params.id;
+
+        if (!rating || rating < 1 || rating > 5) {
+          return res.status(400).send({
+            success: false,
+            message: "Rating must be between 1 and 5.",
+            data: null,
+          });
+        }
+
+        const job = await jobCollection.findOne({ _id: new ObjectId(jobId) });
+        if (!job) {
+          return res.status(404).send({
+            success: false,
+            message: "Job not found",
+            data: null,
+          });
+        }
+
+        const existingReview = job.reviews?.find(
+          (review) => review.email === email
+        );
+
+        if (existingReview) {
+          const result = await jobCollection.updateOne(
+            { _id: new ObjectId(jobId), "reviews.email": email },
+            {
+              $set: {
+                "reviews.$.review": review,
+                "reviews.$.rating": rating,
+                "reviews.$.updatedAt": new Date(),
+              },
+            }
+          );
+        } else {
+          const newReview = {
+            email,
+            review,
+            rating,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+
+          const result = await jobCollection.updateOne(
+            { _id: new ObjectId(jobId) },
+            { $push: { reviews: newReview } }
+          );
+
+          if (result.modifiedCount === 0) {
+            return res.status(400).send({
+              success: false,
+              message: "Failed to add review",
+              data: null,
+            });
+          }
+        }
+
+        const updatedJob = await jobCollection.findOne({
+          _id: new ObjectId(jobId),
+        });
+        const reviews = updatedJob.reviews || [];
+
+        const avgRating =
+          reviews.reduce((acc, review) => acc + review.rating, 0) /
+          reviews.length;
+
+        await jobCollection.updateOne(
+          { _id: new ObjectId(jobId) },
+          { $set: { rating: avgRating } }
+        );
+
+        return res.send({
+          success: true,
+          message: existingReview
+            ? "Review updated successfully"
+            : "Review added successfully",
+          data: null,
+        });
+      } catch (error) {
+        console.log(error);
+        res.status(500).send({
+          success: false,
+          message: "Something went wrong",
+          data: error.message,
+        });
+      }
+    });
+
+    app.delete("/jobs/:id/review", verifyToken, async (req, res) => {
+      try {
+        const { email } = req.user;
+        const jobId = req.params.id;
+
+        const job = await jobCollection.findOne({ _id: new ObjectId(jobId) });
+        if (!job) {
+          return res.status(404).send({
+            success: false,
+            message: "Job not found",
+            data: null,
+          });
+        }
+
+        const existingReview = job.reviews?.find(
+          (review) => review.email === email
+        );
+
+        if (!existingReview) {
+          return res.status(404).send({
+            success: false,
+            message: "Review not found for this user",
+            data: null,
+          });
+        }
+
+        const result = await jobCollection.updateOne(
+          { _id: new ObjectId(jobId) },
+          { $pull: { reviews: { email } } }
+        );
+
+        if (result.modifiedCount === 0) {
+          return res.status(400).send({
+            success: false,
+            message: "Failed to delete review",
+            data: null,
+          });
+        }
+
+        const updatedJob = await jobCollection.findOne({
+          _id: new ObjectId(jobId),
+        });
+        const reviews = updatedJob.reviews || [];
+
+        const avgRating =
+          reviews.length > 0
+            ? reviews.reduce((acc, review) => acc + review.rating, 0) /
+              reviews.length
+            : 0;
+
+        await jobCollection.updateOne(
+          { _id: new ObjectId(jobId) },
+          { $set: { rating: avgRating } }
+        );
+
+        return res.send({
+          success: true,
+          message: "Review deleted successfully",
+          data: null,
+        });
+      } catch (error) {
+        console.log(error);
         res.status(500).send({
           success: false,
           message: "Something went wrong",
