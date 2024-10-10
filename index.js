@@ -573,6 +573,75 @@ async function run() {
       }
     });
 
+
+    // // company jobs collection 
+
+    // // random 5 data get from collection
+    
+
+    app.get('/company/collection/interested', async (req, res) => {
+      try {
+        let result = await companyJobsCollection.aggregate([
+          {
+            $sample: { size: 5 }
+          }
+        ]).toArray()
+        res.status(200).json(result);
+      } catch (error) {
+        res.status(500).json({ message: 'An error occurred', error: error.message });
+      }
+    })
+
+    // // get data by id
+
+    app.get('/company/collection/jobs/:id', async (req, res) => {
+      try {
+        let id = req.params.id
+        console.log(id);
+
+        let result = await companyJobsCollection.findOne({ _id: new ObjectId(id) })
+        console.log(result);
+
+        res.send(result)
+      } catch (error) {
+        res.send({ message: error.message })
+      }
+    })
+
+
+    // // featured company jobs
+
+
+    
+    app.get('/featured/company/jobs', async (req, res) => {
+      try {
+        // console.log(companyJobs);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12;
+        const companyName = req.query.companyName
+
+        const totalJobs = await featuredcompanyJobsCollection.countDocuments();
+        const totalPages = Math.ceil(totalJobs / limit);
+
+       {
+          const jobs = await featuredcompanyJobsCollection.find({})
+            .skip((page - 1) * limit)  // Skip the jobs of previous pages
+            .limit(limit)              // Limit the jobs to 'limit' number
+            .toArray();
+
+          res.json({
+            jobs,
+            totalPages,
+            currentPage: page,
+            totalJobs
+          });
+        }
+
+      } catch (error) {
+        res.json({ error: error.message })
+      }
+    })
+
     // // featured jobs
 
     app.get("/featured/jobs", async (req, res) => {
