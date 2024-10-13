@@ -253,7 +253,9 @@ let featuredcompanyJobs=[
             "Technology",
             "Strategy",
             "Digital",
-            "Operations"
+            "Operations",
+            "BSFI"
+            
         ]
     },
     {
@@ -349,7 +351,8 @@ let featuredcompanyJobs=[
             "Diagnostics",
             "Biotechnology",
             "Healthcare",
-            "Research"
+            "Research",
+            "BSFI"
         ]
     },
     {
@@ -365,7 +368,8 @@ let featuredcompanyJobs=[
             "Healthcare",
             "Research",
             "Biotechnology",
-            "Oncology"
+            "Oncology",
+            "BSFI"
         ]
     },
     {
@@ -397,7 +401,8 @@ let featuredcompanyJobs=[
             "Internet",
             "AI",
             "Cloud",
-            "Software"
+            "Software",
+            "BSFI"
         ]
     },
     {
@@ -429,7 +434,8 @@ let featuredcompanyJobs=[
             "Energy",
             "Innovation",
             "Electric Vehicles",
-            "AI"
+            "AI",
+            "BSFI"
         ]
     },
     {
@@ -445,7 +451,8 @@ let featuredcompanyJobs=[
             "Consumer Electronics",
             "AI",
             "Software",
-            "Innovation"
+            "Innovation",
+            "BSFI"
         ]
     },
     {
@@ -461,7 +468,8 @@ let featuredcompanyJobs=[
             "Technology",
             "Cloud",
             "Retail",
-            "Logistics"
+            "Logistics",
+            "BSFI"
         ]
     }
     ,

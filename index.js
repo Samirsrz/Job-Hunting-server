@@ -473,12 +473,12 @@ async function run() {
     app.get("/featured/jobs/:id", async (req, res) => {
       try {
         let id = req.params.id;
-        console.log(id);
+        // console.log(id);
 
         let result = await featuredcompanyJobsCollection.findOne({
           _id: new ObjectId(id),
         });
-        console.log(result);
+        // console.log(result);
 
         res.send(result);
       } catch (error) {
@@ -513,7 +513,7 @@ async function run() {
     app.get("/follower/:email", async (req, res) => {
       try {
         const { email } = req.params;
-        console.log(email);
+        // console.log(email);
 
         // Check if email exists in the collection
         const result = await followersCollection.findOne({ email: email });
@@ -572,6 +572,7 @@ async function run() {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
         const companyName = req.query.companyName;
+console.log('cnam',companyName);
 
         let isResult = await companyJobsCollection.deleteMany();
 
@@ -589,10 +590,10 @@ async function run() {
           //   let result = await companyJobsCollection.find().toArray()
           //   return res.send(result)
           // }
-
+ 
           if (posted.acknowledged == true) {
             const jobs = await companyJobsCollection
-              .find({})
+              .find()
               .skip((page - 1) * limit) // Skip the jobs of previous pages
               .limit(limit) // Limit the jobs to 'limit' number
               .toArray();
