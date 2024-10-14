@@ -179,7 +179,7 @@ async function run() {
         const sortOrder = sort === "asc" ? 1 : -1;
         const results = await jobCollection
           .find(query)
-          .project({ logo: 1, title: 1, description: 1, reviews: 1, rating: 1 })
+          // .project({ logo: 1, title: 1, description: 1, reviews: 1, rating: 1 })
           .sort({ salary: sortOrder })
           .toArray();
         res.status(200).send({
@@ -544,6 +544,7 @@ async function run() {
       res.send(result);
     });
 
+    //post job api
     app.post("/jobs/new", verifyToken, async (req, res) => {
       try {
         const newJob = req.body;
@@ -557,6 +558,38 @@ async function run() {
           message: "Job insert successfully",
           data: result,
         });
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          data: error,
+        });
+      }
+    });
+
+    //get job information by email
+    app.get(`/job`, async (req, res) => {
+      try {
+        const email = req.query.email;
+        const query = { email: email };
+        const result = await jobCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          data: error,
+        });
+      }
+    });
+
+    //delete job by id
+    app.delete(`/job/:id`, async (req, res) => {
+      try {
+        const id = req.params.id;
+        const quary = { _id: new ObjectId(id) };
+        const result = await jobCollection.deleteOne(quary);
+        res.send(result);
       } catch (error) {
         res.status(400).send({
           success: false,
