@@ -72,6 +72,10 @@ async function run() {
     const featuredcompanyJobsCollection = db.collection("featuredJobs");
     const followersCollection = db.collection("followers");
 
+    // interviewsCollection
+    const interviewsCollection = db.collection("interviews");
+
+
     // await client.connect();
     app.post("/jwt", async (req, res) => {
       const { email } = req.body;
@@ -859,6 +863,49 @@ async function run() {
         });
       }
     });
+
+
+    // Interview related route
+    app.post("/schedule", async (req, res) => {
+
+      const { eventName, description, duration, selectedDate, selectedTime } = req.body;
+
+      if (!eventName || !duration || !selectedDate || !selectedTime) {
+        return res.status(400).json({ message: "Please provide all required fields" });
+      }
+    
+      const newEvent = {
+        eventName,
+        description,
+        duration,
+        selectedDate,
+        selectedTime,
+      };
+      try {
+        
+        const result = await db.interviewsCollection("interviews").insertOne(newEvent);
+        res.status(201).json({ message: "Interview scheduled successfully", data: result });
+      } catch (err) {
+        res.status(500).json({ message: "Failed to schedule interview", error: err });
+      }
+     
+    });
+
+    app.get("/schedule", async (req, res) => {
+      try {
+        
+        const interviews = await db.interviewsCollection("interviews").find().toArray();
+        res.status(200).json(interviews);
+      } catch (err) {
+        res.status(500).json({ message: "Failed to retrieve interviews", error: err });
+      }
+    });
+
+    // Interview route
+
+
+
+
 
     await client.db("admin").command({ ping: 1 });
     console.log(
