@@ -544,6 +544,48 @@ async function run() {
       res.send(result);
     });
 
+    //get resume*********
+    app.get(`/resume/:id`, async (req, res) => {
+      try {
+        const fileId = new ObjectId(req.params.id); // The resume's ObjectId stored in the DB
+        const bucket = new GridFSBucket(db, { bucketName: "uploads" });
+
+        // Find the file in GridFS
+        const files = await bucket.find({ _id: fileId }).toArray();
+
+        if (!files || files.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: "File not found",
+          });
+        }
+
+        // Set the response headers for the file
+        res.set({
+          "Content-Type": files[0].contentType,
+          "Content-Disposition": `attachment; filename="${files[0].filename}"`,
+        });
+
+        // Stream the file content back to the client
+        const downloadStream = bucket.openDownloadStream(fileId);
+        downloadStream.pipe(res);
+
+        downloadStream.on("error", (err) => {
+          res.status(500).send({
+            success: false,
+            message: "Error downloading file",
+            error: err.message,
+          });
+        });
+      } catch (err) {
+        res.status(500).send({
+          success: false,
+          message: "Something went wrong",
+          error: err.message,
+        });
+      }
+    });
+
     //get application information by email
     app.get(`/application`, async (req, res) => {
       const email = req.query.email;
