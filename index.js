@@ -305,8 +305,9 @@ async function run() {
               const jobId = req.params.id;
               const {
                 jobTitle,
-
+                email,
                 coverLetter = "",
+                applicantName,
               } = req.body;
 
               const existingApplication = await appliesCollection.findOne({
@@ -323,12 +324,16 @@ async function run() {
 
               const application = {
                 jobId: jobId,
-                applicantEmail: req.user.email,
+                applicant: {
+                  name: applicantName,
+                  email: req?.user?.email,
+                },
                 resume: uploadStream.id,
                 coverLetter,
                 status: "pending",
                 jobTitle,
                 appliedAt: new Date(),
+                email,
               };
 
               const result = await appliesCollection.insertOne(application);
