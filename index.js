@@ -95,7 +95,7 @@ async function run() {
             sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
           })
           .send({ success: true });
-        console.log("Logout successful");
+        // console.log("Logout successful");
       } catch (err) {
         res.status(500).send(err);
       }
@@ -286,6 +286,7 @@ async function run() {
       }
     });
 
+    //post Application
     app.post(
       "/jobs/:id/apply",
       upload.single("file"),
@@ -304,6 +305,7 @@ async function run() {
             try {
               const jobId = req.params.id;
               const {
+                company,
                 jobTitle,
                 email,
                 coverLetter = "",
@@ -334,6 +336,7 @@ async function run() {
                 jobTitle,
                 appliedAt: new Date(),
                 email,
+                company,
               };
 
               const result = await appliesCollection.insertOne(application);
@@ -448,7 +451,7 @@ async function run() {
           data: null,
         });
       } catch (error) {
-        console.log(error);
+        // console.log(error);
         res.status(500).send({
           success: false,
           message: "Something went wrong",
@@ -518,7 +521,7 @@ async function run() {
           data: null,
         });
       } catch (error) {
-        console.log(error);
+        // console.log(error);
         res.status(500).send({
           success: false,
           message: "Something went wrong",
@@ -533,9 +536,18 @@ async function run() {
       res.send(result);
     });
 
-    //get application information info by email
+    //get application information by host email
+    app.get(`/applications-host`, async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const result = await appliesCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    //get application information by email
     app.get(`/application`, async (req, res) => {
       const email = req.query.email;
+      const applicantEmail = applicant.email;
       const query = { applicantEmail: email };
       const result = await appliesCollection.find(query).toArray();
       res.send(result);
@@ -647,12 +659,12 @@ async function run() {
     app.get("/company/collection/jobs/:id", async (req, res) => {
       try {
         let id = req.params.id;
-        console.log(id);
+        // console.log(id);
 
         let result = await companyJobsCollection.findOne({
           _id: new ObjectId(id),
         });
-        console.log(result);
+        // console.log(result);
 
         res.send(result);
       } catch (error) {
@@ -697,17 +709,17 @@ async function run() {
       try {
         let isResult = await featuredcompanyJobsCollection.deleteMany();
 
-        console.log(isResult);
+        // console.log(isResult);
 
         if (isResult.acknowledged == true) {
           let posted = await featuredcompanyJobsCollection.insertMany(
             featuredcompanyJobs
           );
           // return res.send(posted)
-          console.log(posted);
+          // console.log(posted);
           if (posted.acknowledged == true) {
             let result = await featuredcompanyJobsCollection.find().toArray();
-            console.log(result);
+            // console.log(result);
 
             res.send(result);
           }
@@ -726,12 +738,12 @@ async function run() {
     app.get("/featured/jobs/:id", async (req, res) => {
       try {
         let id = req.params.id;
-        console.log(id);
+        // console.log(id);
 
         let result = await featuredcompanyJobsCollection.findOne({
           _id: new ObjectId(id),
         });
-        console.log(result);
+        // console.log(result);
 
         res.send(result);
       } catch (error) {
@@ -766,13 +778,13 @@ async function run() {
     app.get("/follower/:email", async (req, res) => {
       try {
         const { email } = req.params;
-        console.log(email);
+        // console.log(email);
 
         // Check if email exists in the collection
         const result = await followersCollection.findOne({ email: email });
 
         if (result) {
-          console.log(result);
+          // console.log(result);
           res
             .status(200)
             .send({ message: "Email found in followers", isFound: true });
@@ -793,7 +805,7 @@ async function run() {
         const result = await followersCollection.find().toArray();
 
         if (result) {
-          console.log(result);
+          // console.log(result);
           res.status(200).send({ message: " followers found", data: result });
         } else {
           res.status(404).send({ message: " followers not found" });
