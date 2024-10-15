@@ -536,6 +536,35 @@ async function run() {
       res.send(result);
     });
 
+    //change application status form host
+    app.put(`/applications/:id`, verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const { status } = req.body;
+      const filter = { _id: new ObjectId(id) };
+
+      // Make sure 'status' exists before proceeding
+      if (!status) {
+        return res.status(400).send({ message: "Status is required" });
+      }
+
+      const updateDoc = {
+        $set: {
+          status: status,
+        },
+      };
+
+      try {
+        const result = await appliesCollection.updateOne(filter, updateDoc);
+        if (result.modifiedCount === 1) {
+          res.send({ message: "Application status updated successfully" });
+        } else {
+          res.status(404).send({ message: "Application not found" });
+        }
+      } catch (error) {
+        res.status(500).send({ message: "Error updating status", error });
+      }
+    });
+
     //get application information by host email
     app.get(`/applications-host`, async (req, res) => {
       const email = req.query.email;
