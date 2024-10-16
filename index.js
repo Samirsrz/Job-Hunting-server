@@ -103,7 +103,6 @@ async function run() {
       try {
         let job = null;
 
-        // If jobId is provided, fetch the job details from the job collection
         if (jobId && typeof jobId === "string") {
           job = await jobCollection.findOne(
             { _id: new ObjectId(jobId) },
@@ -121,29 +120,21 @@ async function run() {
 
         let aiMessage = "";
         if (type === "interview") {
-          // If jobId is provided, use job details; otherwise, use a generic message
           if (job) {
-            console.log(job);
-
             aiMessage = `I am applying for the position of ${job.title}. Can you give me a mock interview based on the job description: ${job.description}?`;
           } else {
             aiMessage = `Can you give me a mock interview based on a general job description?`;
           }
         } else if (type === "isJobForYou") {
-          // Check job suitability using skills
           if (job) {
-            console.log(job);
-
             aiMessage = `I have the following skills: ${skills}. Based on the job description: "${job.description}", is this job a good match for me?`;
           } else {
             aiMessage = `I have the following skills: ${skills}. Can you help me determine if I am suited for a job based on these skills?`;
           }
         } else {
-          // Default message if type is neither 'interview' nor 'isJobForYou'
           aiMessage = `This is a general message to the AI: ${message}`;
         }
 
-        // Send the constructed message to the AI model
         const result = await chatSession.sendMessage(aiMessage);
 
         res.json({
