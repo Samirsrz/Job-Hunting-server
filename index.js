@@ -18,6 +18,21 @@ const Grid = require("gridfs-stream");
 const GridFSBucket = require("mongodb").GridFSBucket;
 const stream = require("stream");
 
+const apiKey = process.env.GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(apiKey);
+
+const model = genAI.getGenerativeModel({
+  model: "gemini-1.5-flash",
+});
+
+const generationConfig = {
+  temperature: 1,
+  topP: 0.95,
+  topK: 64,
+  maxOutputTokens: 8192,
+  responseMimeType: "text/plain",
+};
+
 // middleware
 const corsOptions = {
   origin: [
@@ -81,6 +96,56 @@ async function run() {
     // interviewsCollection
     const interviewsCollection = db.collection("interviews");
 
+    // ai api start
+    app.post("/ai", async (req, res) => {
+      const { jobId, type = "", skills = "", message } = req.body;
+
+      try {
+        let job = null;
+
+        if (jobId && typeof jobId === "string") {
+          job = await jobCollection.findOne(
+            { _id: new ObjectId(jobId) },
+            { projection: { title: 1, description: 1 } }
+          );
+          if (!job) {
+            return res.status(404).json({ error: "Job not found" });
+          }
+        }
+
+        const chatSession = model.startChat({
+          generationConfig,
+          history: [],
+        });
+
+        let aiMessage = "";
+        if (type === "interview") {
+          if (job) {
+            aiMessage = `I am applying for the position of ${job.title}. Can you give me a mock interview based on the job description: ${job.description}?`;
+          } else {
+            aiMessage = `Can you give me a mock interview based on a general job description?`;
+          }
+        } else if (type === "isJobForYou") {
+          if (job) {
+            aiMessage = `I have the following skills: ${skills}. Based on the job description: "${job.description}", is this job a good match for me?`;
+          } else {
+            aiMessage = `I have the following skills: ${skills}. Can you help me determine if I am suited for a job based on these skills?`;
+          }
+        } else {
+          aiMessage = `This is a general message to the AI: ${message}`;
+        }
+
+        const result = await chatSession.sendMessage(aiMessage);
+
+        res.json({
+          response: result.response.candidates[0].content.parts[0].text,
+        });
+      } catch (error) {
+        res.status(500).json({ error: "Internal server error" });
+      }
+    });
+
+    // ai api end
 
     // await client.connect();
     app.post("/jwt", async (req, res) => {
@@ -996,16 +1061,17 @@ async function run() {
       }
     });
 
-
     // Interview related route
     app.post("/schedule", async (req, res) => {
-
-      const { eventName, description, duration, selectedDate, selectedTime } = req.body;
+      const { eventName, description, duration, selectedDate, selectedTime } =
+        req.body;
 
       if (!eventName || !duration || !selectedDate || !selectedTime) {
-        return res.status(400).json({ message: "Please provide all required fields" });
+        return res
+          .status(400)
+          .json({ message: "Please provide all required fields" });
       }
-    
+
       const newEvent = {
         eventName,
         description,
@@ -1014,30 +1080,34 @@ async function run() {
         selectedTime,
       };
       try {
-        
-        const result = await db.interviewsCollection("interviews").insertOne(newEvent);
-        res.status(201).json({ message: "Interview scheduled successfully", data: result });
+        const result = await db
+          .interviewsCollection("interviews")
+          .insertOne(newEvent);
+        res
+          .status(201)
+          .json({ message: "Interview scheduled successfully", data: result });
       } catch (err) {
-        res.status(500).json({ message: "Failed to schedule interview", error: err });
+        res
+          .status(500)
+          .json({ message: "Failed to schedule interview", error: err });
       }
-     
     });
 
     app.get("/schedule", async (req, res) => {
       try {
-        
-        const interviews = await db.interviewsCollection("interviews").find().toArray();
+        const interviews = await db
+          .interviewsCollection("interviews")
+          .find()
+          .toArray();
         res.status(200).json(interviews);
       } catch (err) {
-        res.status(500).json({ message: "Failed to retrieve interviews", error: err });
+        res
+          .status(500)
+          .json({ message: "Failed to retrieve interviews", error: err });
       }
     });
 
     // Interview route
-
-
-
-
 
     await client.db("admin").command({ ping: 1 });
     console.log(
@@ -1050,32 +1120,6 @@ run().catch(console.dir);
 
 app.get("/", (req, res) => {
   res.send("Hello from jobHunting..");
-});
-
-// api api here
-const apiKey = process.env.GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(apiKey);
-
-const model = genAI.getGenerativeModel({
-  model: "gemini-1.5-flash",
-});
-
-const generationConfig = {
-  temperature: 1,
-  topP: 0.95,
-  topK: 64,
-  maxOutputTokens: 8192,
-  responseMimeType: "text/plain",
-};
-
-app.post("/ai", async (req, res) => {
-  const chatSession = model.startChat({
-    generationConfig,
-    history: [],
-  });
-
-  const result = await chatSession.sendMessage(req.body.message);
-  res.json({ response: result.response.candidates[0].content.parts[0].text });
 });
 
 app.listen(port, () => {
