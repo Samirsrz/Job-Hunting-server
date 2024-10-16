@@ -13,6 +13,17 @@ const companyJobs = require("./companyJobs/companyJobs.js");
 const featuredcompanyJobs = require("./featuredCompanyJobs/featuredCompanyJobs.js");
 const jwt = require("jsonwebtoken");
 let port = process.env.port || 8000;
+<<<<<<< HEAD
+const multer = require('multer');
+const Grid = require('gridfs-stream')
+const GridFSBucket = require('mongodb').GridFSBucket;
+const stream = require('stream');
+
+
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+
+=======
 const multer = require("multer");
 const Grid = require("gridfs-stream");
 const GridFSBucket = require("mongodb").GridFSBucket;
@@ -32,6 +43,7 @@ const generationConfig = {
   maxOutputTokens: 8192,
   responseMimeType: "text/plain",
 };
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
 // middleware
 const corsOptions = {
@@ -51,7 +63,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 const verifyToken = (req, res, next) => {
-  const token = req.headers.authorization.split(" ")[1];
+  const token = req.headers.authorization?.split(" ")[1];
   if (!token) {
     return res.status(401).send({ message: "unauthorized access" });
   }
@@ -92,6 +104,8 @@ async function run() {
     // // featured collection
     const featuredcompanyJobsCollection = db.collection("featuredJobs");
     const followersCollection = db.collection("followers");
+  
+    const paymentCollection = db.collection("payment");
 
     // interviewsCollection
     const interviewsCollection = db.collection("interviews");
@@ -798,6 +812,13 @@ async function run() {
 
     app.get("/company/collection/jobs/:id", async (req, res) => {
       try {
+<<<<<<< HEAD
+        let id = req.params.id
+       // console.log(id);
+
+        let result = await companyJobsCollection.findOne({ _id: new ObjectId(id) })
+     //   console.log(result);
+=======
         let id = req.params.id;
         // console.log(id);
 
@@ -805,6 +826,7 @@ async function run() {
           _id: new ObjectId(id),
         });
         // console.log(result);
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
         res.send(result);
       } catch (error) {
@@ -849,17 +871,28 @@ async function run() {
       try {
         let isResult = await featuredcompanyJobsCollection.deleteMany();
 
+<<<<<<< HEAD
+    //    console.log(isResult);
+=======
         // console.log(isResult);
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
         if (isResult.acknowledged == true) {
           let posted = await featuredcompanyJobsCollection.insertMany(
             featuredcompanyJobs
           );
           // return res.send(posted)
+<<<<<<< HEAD
+         // console.log(posted);
+          if (posted.acknowledged == true) {
+            let result = await featuredcompanyJobsCollection.find().toArray();
+         //   console.log(result);
+=======
           // console.log(posted);
           if (posted.acknowledged == true) {
             let result = await featuredcompanyJobsCollection.find().toArray();
             // console.log(result);
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
             res.send(result);
           }
@@ -878,12 +911,20 @@ async function run() {
     app.get("/featured/jobs/:id", async (req, res) => {
       try {
         let id = req.params.id;
+<<<<<<< HEAD
+       // console.log(id);
+=======
         // console.log(id);
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
         let result = await featuredcompanyJobsCollection.findOne({
           _id: new ObjectId(id),
         });
+<<<<<<< HEAD
+      //  console.log(result);
+=======
         // console.log(result);
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
         res.send(result);
       } catch (error) {
@@ -918,13 +959,21 @@ async function run() {
     app.get("/follower/:email", async (req, res) => {
       try {
         const { email } = req.params;
+<<<<<<< HEAD
+     //   console.log(email);
+=======
         // console.log(email);
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
         // Check if email exists in the collection
         const result = await followersCollection.findOne({ email: email });
 
         if (result) {
+<<<<<<< HEAD
+       //   console.log(result);
+=======
           // console.log(result);
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
           res
             .status(200)
             .send({ message: "Email found in followers", isFound: true });
@@ -934,7 +983,7 @@ async function run() {
             .send({ message: "Email not found in followers", isFound: false });
         }
       } catch (error) {
-        console.error(error);
+       // console.error(error);
         res.status(500).send({ error: error.message });
       }
     });
@@ -945,13 +994,17 @@ async function run() {
         const result = await followersCollection.find().toArray();
 
         if (result) {
+<<<<<<< HEAD
+        //  console.log(result);
+=======
           // console.log(result);
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
           res.status(200).send({ message: " followers found", data: result });
         } else {
           res.status(404).send({ message: " followers not found" });
         }
       } catch (error) {
-        console.error(error);
+     //   console.error(error);
         res.status(500).send({ error: error.message });
       }
     });
@@ -1015,6 +1068,61 @@ async function run() {
         // console.log(result);
       } catch (error) {}
     });
+
+
+//payment posting route
+app.post('/api/payment', async (req, res) => {
+  const { amount, payerEmail,status,type } = req.body; 
+
+  try {
+   
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: parseInt(amount), 
+      currency: 'usd',
+      payment_method_types: ['card']
+    });
+
+    
+    const paymentData = {
+      email:payerEmail, 
+      amount,
+      createdAt: new Date(),
+      status,
+      type,
+      paymentIntentId: paymentIntent.id, 
+    };
+
+    const result = await paymentCollection.insertOne(paymentData);
+
+    res.send({
+      clientSecret: paymentIntent.client_secret
+    })
+
+  } catch (error) {
+    console.error('Error processing payment:', error);
+    return res.status(500).send('Error processing payment');
+  }
+});
+
+//get payment by email
+app.get('/api/payment/:email', async (req, res) => {
+  const email = req.params.email;
+
+  try {
+    const payments = await paymentCollection.find({ email }).toArray();
+
+    if (payments.length > 0) {
+      return res.json(payments);
+    } else {
+      return res.status(404).json({ message: 'No payments found for this ID' });
+    }
+  } catch (error) {
+    console.error('Error fetching payment data:', error);
+    return res.status(500).send('Error fetching payment data');
+  }
+});
+
+
 
     app.delete("/jobs/:id/apply", verifyToken, async (req, res) => {
       try {
