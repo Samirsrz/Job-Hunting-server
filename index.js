@@ -1,4 +1,9 @@
 const express = require("express");
+const {
+  GoogleGenerativeAI,
+  HarmCategory,
+  HarmBlockThreshold,
+} = require("@google/generative-ai");
 const app = express();
 require("dotenv").config();
 const cors = require("cors");
@@ -8,6 +13,7 @@ const companyJobs = require("./companyJobs/companyJobs.js");
 const featuredcompanyJobs = require("./featuredCompanyJobs/featuredCompanyJobs.js");
 const jwt = require("jsonwebtoken");
 let port = process.env.port || 8000;
+<<<<<<< HEAD
 const multer = require('multer');
 const Grid = require('gridfs-stream')
 const GridFSBucket = require('mongodb').GridFSBucket;
@@ -17,6 +23,27 @@ const stream = require('stream');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 
+=======
+const multer = require("multer");
+const Grid = require("gridfs-stream");
+const GridFSBucket = require("mongodb").GridFSBucket;
+const stream = require("stream");
+
+const apiKey = process.env.GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(apiKey);
+
+const model = genAI.getGenerativeModel({
+  model: "gemini-1.5-flash",
+});
+
+const generationConfig = {
+  temperature: 1,
+  topP: 0.95,
+  topK: 64,
+  maxOutputTokens: 8192,
+  responseMimeType: "text/plain",
+};
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
 // middleware
 const corsOptions = {
@@ -80,6 +107,60 @@ async function run() {
   
     const paymentCollection = db.collection("payment");
 
+    // interviewsCollection
+    const interviewsCollection = db.collection("interviews");
+
+    // ai api start
+    app.post("/ai", async (req, res) => {
+      const { jobId, type = "", skills = "", message } = req.body;
+
+      try {
+        let job = null;
+
+        if (jobId && typeof jobId === "string") {
+          job = await jobCollection.findOne(
+            { _id: new ObjectId(jobId) },
+            { projection: { title: 1, description: 1 } }
+          );
+          if (!job) {
+            return res.status(404).json({ error: "Job not found" });
+          }
+        }
+
+        const chatSession = model.startChat({
+          generationConfig,
+          history: [],
+        });
+
+        let aiMessage = "";
+        if (type === "interview") {
+          if (job) {
+            aiMessage = `I am applying for the position of ${job.title}. Can you give me a mock interview based on the job description: ${job.description}?`;
+          } else {
+            aiMessage = `Can you give me a mock interview based on a general job description?`;
+          }
+        } else if (type === "isJobForYou") {
+          if (job) {
+            aiMessage = `I have the following skills: ${skills}. Based on the job description: "${job.description}", is this job a good match for me?`;
+          } else {
+            aiMessage = `I have the following skills: ${skills}. Can you help me determine if I am suited for a job based on these skills?`;
+          }
+        } else {
+          aiMessage = `This is a general message to the AI: ${message}`;
+        }
+
+        const result = await chatSession.sendMessage(aiMessage);
+
+        res.json({
+          response: result.response.candidates[0].content.parts[0].text,
+        });
+      } catch (error) {
+        res.status(500).json({ error: "Internal server error" });
+      }
+    });
+
+    // ai api end
+
     // await client.connect();
     app.post("/jwt", async (req, res) => {
       const { email } = req.body;
@@ -97,7 +178,7 @@ async function run() {
             sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
           })
           .send({ success: true });
-        console.log("Logout successful");
+        // console.log("Logout successful");
       } catch (err) {
         res.status(500).send(err);
       }
@@ -181,7 +262,7 @@ async function run() {
         const sortOrder = sort === "asc" ? 1 : -1;
         const results = await jobCollection
           .find(query)
-          .project({ logo: 1, title: 1, description: 1, reviews: 1, rating: 1 })
+          // .project({ logo: 1, title: 1, description: 1, reviews: 1, rating: 1 })
           .sort({ salary: sortOrder })
           .toArray();
         res.status(200).send({
@@ -288,75 +369,87 @@ async function run() {
       }
     });
 
-   app.post("/jobs/:id/apply", upload.single('file'), verifyToken, async (req, res) => {
-      try {
-          const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
+    //post Application
+    app.post(
+      "/jobs/:id/apply",
+      upload.single("file"),
+      verifyToken,
+      async (req, res) => {
+        try {
+          const bucket = new GridFSBucket(db, { bucketName: "uploads" });
           const readableStream = new stream.Readable();
           readableStream.push(req.file.buffer);
-          readableStream.push(null); 
+          readableStream.push(null);
           const uploadStream = bucket.openUploadStream(req.file.originalname, {
-              contentType: req.file.mimetype,
+            contentType: req.file.mimetype,
           });
-          readableStream.pipe(uploadStream);  
-          uploadStream.on('finish', async () => {
+          readableStream.pipe(uploadStream);
+          uploadStream.on("finish", async () => {
             try {
-        const jobId = req.params.id;
-        const {
-        
-          jobTitle,
-        
-          coverLetter = "",
-        } = req.body;
+              const jobId = req.params.id;
+              const {
+                company,
+                jobTitle,
+                email,
+                coverLetter = "",
+                applicantName,
+              } = req.body;
 
-        const existingApplication = await appliesCollection.findOne({
-          jobId: jobId,
-          applicantEmail: req.user.email,
-        });
+              const existingApplication = await appliesCollection.findOne({
+                jobId: jobId,
+                applicantEmail: req.user.email,
+              });
 
-        if (existingApplication) {
-          return res.status(400).send({
-            success: false,
-            message: "You have already applied for this job",
+              if (existingApplication) {
+                return res.status(400).send({
+                  success: false,
+                  message: "You have already applied for this job",
+                });
+              }
+
+              const application = {
+                jobId: jobId,
+                applicant: {
+                  name: applicantName,
+                  email: req?.user?.email,
+                },
+                resume: uploadStream.id,
+                coverLetter,
+                status: "pending",
+                jobTitle,
+                appliedAt: new Date(),
+                email,
+                company,
+              };
+
+              const result = await appliesCollection.insertOne(application);
+
+              res.status(201).send({
+                success: true,
+                message: "Application submitted successfully",
+                data: result,
+              });
+            } catch (error) {
+              res.status(500).send({
+                success: false,
+                message: "Something went wrong",
+                data: error.message,
+              });
+            }
           });
-        }
 
-        const application = {
-          jobId: jobId,
-          applicantEmail: req.user.email,
-          resume : uploadStream.id,
-          coverLetter,
-          status: 'pending',
-          jobTitle,
-          appliedAt: new Date(),
-        };
-           
-
-        const result = await appliesCollection.insertOne(application);
-
-        res.status(201).send({
-          success: true,
-          message: "Application submitted successfully",
-          data: result,
-        });
-      } catch (error) {
-        res.status(500).send({
-          success: false,
-          message: "Something went wrong",
-          data: error.message,
-        });
-      }
+          uploadStream.on("error", (err) => {
+            console.error(err);
+            return res
+              .status(500)
+              .json({ message: "Error uploading file", error: err });
           });
-  
-          uploadStream.on('error', (err) => {
-              console.error(err);
-              return res.status(500).json({ message: 'Error uploading file', error: err });
-          });
-      } catch (err) {
+        } catch (err) {
           console.error(err);
-          return res.status(500).json({ message: 'Server Error', error: err });
+          return res.status(500).json({ message: "Server Error", error: err });
+        }
       }
-  });
-
+    );
 
     app.post("/jobs/:id/review", verifyToken, async (req, res) => {
       try {
@@ -441,7 +534,7 @@ async function run() {
           data: null,
         });
       } catch (error) {
-        console.log(error);
+        // console.log(error);
         res.status(500).send({
           success: false,
           message: "Something went wrong",
@@ -511,7 +604,7 @@ async function run() {
           data: null,
         });
       } catch (error) {
-        console.log(error);
+        // console.log(error);
         res.status(500).send({
           success: false,
           message: "Something went wrong",
@@ -526,9 +619,89 @@ async function run() {
       res.send(result);
     });
 
-    //get application information info by email
+    //change application status form host
+    app.put(`/applications/:id`, verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const { status } = req.body;
+      const filter = { _id: new ObjectId(id) };
+
+      // Make sure 'status' exists before proceeding
+      if (!status) {
+        return res.status(400).send({ message: "Status is required" });
+      }
+
+      const updateDoc = {
+        $set: {
+          status: status,
+        },
+      };
+
+      try {
+        const result = await appliesCollection.updateOne(filter, updateDoc);
+        if (result.modifiedCount === 1) {
+          res.send({ message: "Application status updated successfully" });
+        } else {
+          res.status(404).send({ message: "Application not found" });
+        }
+      } catch (error) {
+        res.status(500).send({ message: "Error updating status", error });
+      }
+    });
+
+    //get application information by host email
+    app.get(`/applications-host`, async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const result = await appliesCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    //get resume*********
+    app.get(`/resume/:id`, async (req, res) => {
+      try {
+        const fileId = new ObjectId(req.params.id); // The resume's ObjectId stored in the DB
+        const bucket = new GridFSBucket(db, { bucketName: "uploads" });
+
+        // Find the file in GridFS
+        const files = await bucket.find({ _id: fileId }).toArray();
+
+        if (!files || files.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: "File not found",
+          });
+        }
+
+        // Set the response headers for the file
+        res.set({
+          "Content-Type": files[0].contentType,
+          "Content-Disposition": `attachment; filename="${files[0].filename}"`,
+        });
+
+        // Stream the file content back to the client
+        const downloadStream = bucket.openDownloadStream(fileId);
+        downloadStream.pipe(res);
+
+        downloadStream.on("error", (err) => {
+          res.status(500).send({
+            success: false,
+            message: "Error downloading file",
+            error: err.message,
+          });
+        });
+      } catch (err) {
+        res.status(500).send({
+          success: false,
+          message: "Something went wrong",
+          error: err.message,
+        });
+      }
+    });
+
+    //get application information by email
     app.get(`/application`, async (req, res) => {
       const email = req.query.email;
+      const applicantEmail = applicant.email;
       const query = { applicantEmail: email };
       const result = await appliesCollection.find(query).toArray();
       res.send(result);
@@ -542,6 +715,7 @@ async function run() {
       res.send(result);
     });
 
+    //post job api
     app.post("/jobs/new", verifyToken, async (req, res) => {
       try {
         const newJob = req.body;
@@ -555,6 +729,38 @@ async function run() {
           message: "Job insert successfully",
           data: result,
         });
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          data: error,
+        });
+      }
+    });
+
+    //get job information by email
+    app.get(`/job`, async (req, res) => {
+      try {
+        const email = req.query.email;
+        const query = { email: email };
+        const result = await jobCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          data: error,
+        });
+      }
+    });
+
+    //delete job by id
+    app.delete(`/job/:id`, async (req, res) => {
+      try {
+        const id = req.params.id;
+        const quary = { _id: new ObjectId(id) };
+        const result = await jobCollection.deleteOne(quary);
+        res.send(result);
       } catch (error) {
         res.status(400).send({
           success: false,
@@ -581,74 +787,83 @@ async function run() {
       }
     });
 
-
-    // // company jobs collection 
+    // // company jobs collection
 
     // // random 5 data get from collection
-    
 
-    app.get('/company/collection/interested', async (req, res) => {
+    app.get("/company/collection/interested", async (req, res) => {
       try {
-        let result = await companyJobsCollection.aggregate([
-          {
-            $sample: { size: 5 }
-          }
-        ]).toArray()
+        let result = await companyJobsCollection
+          .aggregate([
+            {
+              $sample: { size: 5 },
+            },
+          ])
+          .toArray();
         res.status(200).json(result);
       } catch (error) {
-        res.status(500).json({ message: 'An error occurred', error: error.message });
+        res
+          .status(500)
+          .json({ message: "An error occurred", error: error.message });
       }
-    })
+    });
 
     // // get data by id
 
-    app.get('/company/collection/jobs/:id', async (req, res) => {
+    app.get("/company/collection/jobs/:id", async (req, res) => {
       try {
+<<<<<<< HEAD
         let id = req.params.id
        // console.log(id);
 
         let result = await companyJobsCollection.findOne({ _id: new ObjectId(id) })
      //   console.log(result);
+=======
+        let id = req.params.id;
+        // console.log(id);
 
-        res.send(result)
+        let result = await companyJobsCollection.findOne({
+          _id: new ObjectId(id),
+        });
+        // console.log(result);
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
+
+        res.send(result);
       } catch (error) {
-        res.send({ message: error.message })
+        res.send({ message: error.message });
       }
-    })
-
+    });
 
     // // featured company jobs
 
-
-    
-    app.get('/featured/company/jobs', async (req, res) => {
+    app.get("/featured/company/jobs", async (req, res) => {
       try {
         // console.log(companyJobs);
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 12;
-        const companyName = req.query.companyName
+        const companyName = req.query.companyName;
 
         const totalJobs = await featuredcompanyJobsCollection.countDocuments();
         const totalPages = Math.ceil(totalJobs / limit);
 
-       {
-          const jobs = await featuredcompanyJobsCollection.find({})
-            .skip((page - 1) * limit)  // Skip the jobs of previous pages
-            .limit(limit)              // Limit the jobs to 'limit' number
+        {
+          const jobs = await featuredcompanyJobsCollection
+            .find({})
+            .skip((page - 1) * limit) // Skip the jobs of previous pages
+            .limit(limit) // Limit the jobs to 'limit' number
             .toArray();
 
           res.json({
             jobs,
             totalPages,
             currentPage: page,
-            totalJobs
+            totalJobs,
           });
         }
-
       } catch (error) {
-        res.json({ error: error.message })
+        res.json({ error: error.message });
       }
-    })
+    });
 
     // // featured jobs
 
@@ -656,17 +871,28 @@ async function run() {
       try {
         let isResult = await featuredcompanyJobsCollection.deleteMany();
 
+<<<<<<< HEAD
     //    console.log(isResult);
+=======
+        // console.log(isResult);
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
         if (isResult.acknowledged == true) {
           let posted = await featuredcompanyJobsCollection.insertMany(
             featuredcompanyJobs
           );
           // return res.send(posted)
+<<<<<<< HEAD
          // console.log(posted);
           if (posted.acknowledged == true) {
             let result = await featuredcompanyJobsCollection.find().toArray();
          //   console.log(result);
+=======
+          // console.log(posted);
+          if (posted.acknowledged == true) {
+            let result = await featuredcompanyJobsCollection.find().toArray();
+            // console.log(result);
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
             res.send(result);
           }
@@ -685,12 +911,20 @@ async function run() {
     app.get("/featured/jobs/:id", async (req, res) => {
       try {
         let id = req.params.id;
+<<<<<<< HEAD
        // console.log(id);
+=======
+        // console.log(id);
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
         let result = await featuredcompanyJobsCollection.findOne({
           _id: new ObjectId(id),
         });
+<<<<<<< HEAD
       //  console.log(result);
+=======
+        // console.log(result);
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
         res.send(result);
       } catch (error) {
@@ -725,13 +959,21 @@ async function run() {
     app.get("/follower/:email", async (req, res) => {
       try {
         const { email } = req.params;
+<<<<<<< HEAD
      //   console.log(email);
+=======
+        // console.log(email);
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
         // Check if email exists in the collection
         const result = await followersCollection.findOne({ email: email });
 
         if (result) {
+<<<<<<< HEAD
        //   console.log(result);
+=======
+          // console.log(result);
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
           res
             .status(200)
             .send({ message: "Email found in followers", isFound: true });
@@ -752,7 +994,11 @@ async function run() {
         const result = await followersCollection.find().toArray();
 
         if (result) {
+<<<<<<< HEAD
         //  console.log(result);
+=======
+          // console.log(result);
+>>>>>>> f060883415bd8989a46965887746c78f3880eafc
           res.status(200).send({ message: " followers found", data: result });
         } else {
           res.status(404).send({ message: " followers not found" });
@@ -922,6 +1168,54 @@ app.get('/api/payment/:email', async (req, res) => {
         });
       }
     });
+
+    // Interview related route
+    app.post("/schedule", async (req, res) => {
+      const { eventName, description, duration, selectedDate, selectedTime } =
+        req.body;
+
+      if (!eventName || !duration || !selectedDate || !selectedTime) {
+        return res
+          .status(400)
+          .json({ message: "Please provide all required fields" });
+      }
+
+      const newEvent = {
+        eventName,
+        description,
+        duration,
+        selectedDate,
+        selectedTime,
+      };
+      try {
+        const result = await db
+          .interviewsCollection("interviews")
+          .insertOne(newEvent);
+        res
+          .status(201)
+          .json({ message: "Interview scheduled successfully", data: result });
+      } catch (err) {
+        res
+          .status(500)
+          .json({ message: "Failed to schedule interview", error: err });
+      }
+    });
+
+    app.get("/schedule", async (req, res) => {
+      try {
+        const interviews = await db
+          .interviewsCollection("interviews")
+          .find()
+          .toArray();
+        res.status(200).json(interviews);
+      } catch (err) {
+        res
+          .status(500)
+          .json({ message: "Failed to retrieve interviews", error: err });
+      }
+    });
+
+    // Interview route
 
     await client.db("admin").command({ ping: 1 });
     console.log(
