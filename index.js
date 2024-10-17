@@ -13,22 +13,12 @@ const companyJobs = require("./companyJobs/companyJobs.js");
 const featuredcompanyJobs = require("./featuredCompanyJobs/featuredCompanyJobs.js");
 const jwt = require("jsonwebtoken");
 let port = process.env.port || 8000;
-<<<<<<< HEAD
+
 const multer = require('multer');
 const Grid = require('gridfs-stream')
 const GridFSBucket = require('mongodb').GridFSBucket;
 const stream = require('stream');
-
-
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-
-
-=======
-const multer = require("multer");
-const Grid = require("gridfs-stream");
-const GridFSBucket = require("mongodb").GridFSBucket;
-const stream = require("stream");
-
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
@@ -43,7 +33,7 @@ const generationConfig = {
   maxOutputTokens: 8192,
   responseMimeType: "text/plain",
 };
->>>>>>> f060883415bd8989a46965887746c78f3880eafc
+
 
 // middleware
 const corsOptions = {
@@ -812,21 +802,11 @@ async function run() {
 
     app.get("/company/collection/jobs/:id", async (req, res) => {
       try {
-<<<<<<< HEAD
         let id = req.params.id
        // console.log(id);
 
         let result = await companyJobsCollection.findOne({ _id: new ObjectId(id) })
      //   console.log(result);
-=======
-        let id = req.params.id;
-        // console.log(id);
-
-        let result = await companyJobsCollection.findOne({
-          _id: new ObjectId(id),
-        });
-        // console.log(result);
->>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
         res.send(result);
       } catch (error) {
@@ -871,28 +851,17 @@ async function run() {
       try {
         let isResult = await featuredcompanyJobsCollection.deleteMany();
 
-<<<<<<< HEAD
     //    console.log(isResult);
-=======
-        // console.log(isResult);
->>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
         if (isResult.acknowledged == true) {
           let posted = await featuredcompanyJobsCollection.insertMany(
             featuredcompanyJobs
           );
           // return res.send(posted)
-<<<<<<< HEAD
          // console.log(posted);
           if (posted.acknowledged == true) {
             let result = await featuredcompanyJobsCollection.find().toArray();
          //   console.log(result);
-=======
-          // console.log(posted);
-          if (posted.acknowledged == true) {
-            let result = await featuredcompanyJobsCollection.find().toArray();
-            // console.log(result);
->>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
             res.send(result);
           }
@@ -911,20 +880,12 @@ async function run() {
     app.get("/featured/jobs/:id", async (req, res) => {
       try {
         let id = req.params.id;
-<<<<<<< HEAD
        // console.log(id);
-=======
-        // console.log(id);
->>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
         let result = await featuredcompanyJobsCollection.findOne({
           _id: new ObjectId(id),
         });
-<<<<<<< HEAD
       //  console.log(result);
-=======
-        // console.log(result);
->>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
         res.send(result);
       } catch (error) {
@@ -959,21 +920,13 @@ async function run() {
     app.get("/follower/:email", async (req, res) => {
       try {
         const { email } = req.params;
-<<<<<<< HEAD
      //   console.log(email);
-=======
-        // console.log(email);
->>>>>>> f060883415bd8989a46965887746c78f3880eafc
 
         // Check if email exists in the collection
         const result = await followersCollection.findOne({ email: email });
 
         if (result) {
-<<<<<<< HEAD
        //   console.log(result);
-=======
-          // console.log(result);
->>>>>>> f060883415bd8989a46965887746c78f3880eafc
           res
             .status(200)
             .send({ message: "Email found in followers", isFound: true });
@@ -994,11 +947,7 @@ async function run() {
         const result = await followersCollection.find().toArray();
 
         if (result) {
-<<<<<<< HEAD
         //  console.log(result);
-=======
-          // console.log(result);
->>>>>>> f060883415bd8989a46965887746c78f3880eafc
           res.status(200).send({ message: " followers found", data: result });
         } else {
           res.status(404).send({ message: " followers not found" });
