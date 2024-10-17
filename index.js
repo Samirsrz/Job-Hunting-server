@@ -851,8 +851,6 @@ async function run() {
       try {
         let isResult = await featuredcompanyJobsCollection.deleteMany();
 
-    //    console.log(isResult);
-        // console.log(isResult);
 
         if (isResult.acknowledged == true) {
           let posted = await featuredcompanyJobsCollection.insertMany(
@@ -881,14 +879,11 @@ async function run() {
     app.get("/featured/jobs/:id", async (req, res) => {
       try {
         let id = req.params.id;
-       // console.log(id);
-        // console.log(id);
 
         let result = await featuredcompanyJobsCollection.findOne({
           _id: new ObjectId(id),
         });
-      //  console.log(result);
-        // console.log(result);
+
 
         res.send(result);
       } catch (error) {
@@ -923,15 +918,13 @@ async function run() {
     app.get("/follower/:email", async (req, res) => {
       try {
         const { email } = req.params;
-     //   console.log(email);
-        // console.log(email);
+
 
         // Check if email exists in the collection
         const result = await followersCollection.findOne({ email: email });
 
         if (result) {
-       //   console.log(result);
-          // console.log(result);
+
           res
             .status(200)
             .send({ message: "Email found in followers", isFound: true });
@@ -952,7 +945,6 @@ async function run() {
         const result = await followersCollection.find().toArray();
 
         if (result) {
-          // console.log(result);
           res.status(200).send({ message: " followers found", data: result });
         } else {
           res.status(404).send({ message: " followers not found" });
