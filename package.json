@@ -11,12 +11,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-<<<<<<< HEAD
     "@stripe/react-stripe-js": "^2.8.1",
-=======
     "@google/generative-ai": "^0.21.0",
     "axios": "^1.7.7",
->>>>>>> f060883415bd8989a46965887746c78f3880eafc
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
