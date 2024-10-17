@@ -12,6 +12,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const companyJobs = require("./companyJobs/companyJobs.js");
 const featuredcompanyJobs = require("./featuredCompanyJobs/featuredCompanyJobs.js");
 const jwt = require("jsonwebtoken");
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 let port = process.env.port || 8000;
 const multer = require('multer');
 const Grid = require('gridfs-stream')
@@ -22,6 +23,8 @@ const sponsored = require("./sponsoredCompanies/sponsored.js");
 // const Grid = require("gridfs-stream");
 // const GridFSBucket = require("mongodb").GridFSBucket;
 // const stream = require("stream");
+
+
 
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
