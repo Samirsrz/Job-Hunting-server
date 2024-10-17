@@ -13,12 +13,11 @@ const companyJobs = require("./companyJobs/companyJobs.js");
 const featuredcompanyJobs = require("./featuredCompanyJobs/featuredCompanyJobs.js");
 const jwt = require("jsonwebtoken");
 let port = process.env.port || 8000;
+const multer = require("multer");
+const Grid = require("gridfs-stream");
+const GridFSBucket = require("mongodb").GridFSBucket;
+const stream = require("stream");
 
-const multer = require('multer');
-const Grid = require('gridfs-stream')
-const GridFSBucket = require('mongodb').GridFSBucket;
-const stream = require('stream');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
@@ -33,7 +32,6 @@ const generationConfig = {
   maxOutputTokens: 8192,
   responseMimeType: "text/plain",
 };
-
 
 // middleware
 const corsOptions = {
@@ -691,7 +689,7 @@ async function run() {
     //get application information by email
     app.get(`/application`, async (req, res) => {
       const email = req.query.email;
-      const applicantEmail = applicant.email;
+      // const applicantEmail = applicant.email;
       const query = { applicantEmail: email };
       const result = await appliesCollection.find(query).toArray();
       res.send(result);
@@ -802,11 +800,13 @@ async function run() {
 
     app.get("/company/collection/jobs/:id", async (req, res) => {
       try {
-        let id = req.params.id
-       // console.log(id);
+        let id = req.params.id;
+        // console.log(id);
 
-        let result = await companyJobsCollection.findOne({ _id: new ObjectId(id) })
-     //   console.log(result);
+        let result = await companyJobsCollection.findOne({
+          _id: new ObjectId(id),
+        });
+        // console.log(result);
 
         res.send(result);
       } catch (error) {
@@ -851,17 +851,16 @@ async function run() {
       try {
         let isResult = await featuredcompanyJobsCollection.deleteMany();
 
-    //    console.log(isResult);
 
         if (isResult.acknowledged == true) {
           let posted = await featuredcompanyJobsCollection.insertMany(
             featuredcompanyJobs
           );
           // return res.send(posted)
-         // console.log(posted);
+          // console.log(posted);
           if (posted.acknowledged == true) {
             let result = await featuredcompanyJobsCollection.find().toArray();
-         //   console.log(result);
+            // console.log(result);
 
             res.send(result);
           }
@@ -880,12 +879,11 @@ async function run() {
     app.get("/featured/jobs/:id", async (req, res) => {
       try {
         let id = req.params.id;
-       // console.log(id);
 
         let result = await featuredcompanyJobsCollection.findOne({
           _id: new ObjectId(id),
         });
-      //  console.log(result);
+
 
         res.send(result);
       } catch (error) {
@@ -920,13 +918,13 @@ async function run() {
     app.get("/follower/:email", async (req, res) => {
       try {
         const { email } = req.params;
-     //   console.log(email);
+
 
         // Check if email exists in the collection
         const result = await followersCollection.findOne({ email: email });
 
         if (result) {
-       //   console.log(result);
+
           res
             .status(200)
             .send({ message: "Email found in followers", isFound: true });
@@ -947,7 +945,6 @@ async function run() {
         const result = await followersCollection.find().toArray();
 
         if (result) {
-        //  console.log(result);
           res.status(200).send({ message: " followers found", data: result });
         } else {
           res.status(404).send({ message: " followers not found" });
