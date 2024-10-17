@@ -12,7 +12,11 @@ let featuredcompanyJobs=[
             "Consulting",
             "Digital Transformation",
             "Healthcare",
-            "Public Sector"
+            "Public Sector",
+             'Healthcare ',
+             "B2B",
+             "FinTech / Payments"
+
         ]
     },
     {
@@ -24,11 +28,15 @@ let featuredcompanyJobs=[
         "cover_photo": "https://static.ambitionbox.com/alpha/company/photos/banner/desktop/accenture_1920x534.jpg",
         "company_title": "Innovate for a Better Future",
         "tags": [
+             "BSFI",
             "Consulting",
             "Technology",
             "Strategy",
             "Digital",
-            "Operations"
+            "Operations",
+           
+            "B2C"
+           
         ]
     },
     {
@@ -76,7 +84,9 @@ let featuredcompanyJobs=[
             "AI",
             "Consulting",
             "Blockchain",
-            "Cybersecurity"
+            "Cybersecurity",
+            "FinTech / Payments"
+
         ]
     },
     {
