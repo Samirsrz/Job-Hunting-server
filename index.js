@@ -689,7 +689,7 @@ async function run() {
     //get application information by email
     app.get(`/application`, async (req, res) => {
       const email = req.query.email;
-      const applicantEmail = applicant.email;
+      // const applicantEmail = applicant.email;
       const query = { applicantEmail: email };
       const result = await appliesCollection.find(query).toArray();
       res.send(result);
