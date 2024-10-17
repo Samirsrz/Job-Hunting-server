@@ -1170,62 +1170,62 @@ async function run() {
 
        // featured jobs
      // for inserting featured data
-    app.get("/featured/company/jobs", async (req, res) => {
-      try {
-        // console.log(companyJobs);
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 12;
-        const companyName = req.query.companyName;
+    // app.get("/featured/company/jobs", async (req, res) => {
+    //   try {
+    //     // console.log(companyJobs);
+    //     const page = parseInt(req.query.page) || 1;
+    //     const limit = parseInt(req.query.limit) || 12;
+    //     const companyName = req.query.companyName;
 
-        const totalJobs = await featuredcompanyJobsCollection.countDocuments();
-        const totalPages = Math.ceil(totalJobs / limit);
+    //     const totalJobs = await featuredcompanyJobsCollection.countDocuments();
+    //     const totalPages = Math.ceil(totalJobs / limit);
 
-        {
-          const jobs = await featuredcompanyJobsCollection
-            .find({})
-            .skip((page - 1) * limit) // Skip the jobs of previous pages
-            .limit(limit) // Limit the jobs to 'limit' number
-            .toArray();
+    //     {
+    //       const jobs = await featuredcompanyJobsCollection
+    //         .find({})
+    //         .skip((page - 1) * limit) // Skip the jobs of previous pages
+    //         .limit(limit) // Limit the jobs to 'limit' number
+    //         .toArray();
 
-          res.json({
-            jobs,
-            totalPages,
-            currentPage: page,
-            totalJobs,
-          });
-        }
-      } catch (error) {
-        res.json({ error: error.message });
-      }
-    });
-
-
-    app.get("/featured/jobs", async (req, res) => {
-      try {
-        let isResult = await featuredcompanyJobsCollection.deleteMany();
+    //       res.json({
+    //         jobs,
+    //         totalPages,
+    //         currentPage: page,
+    //         totalJobs,
+    //       });
+    //     }
+    //   } catch (error) {
+    //     res.json({ error: error.message });
+    //   }
+    // });
 
 
-        if (isResult.acknowledged == true) {
-          let posted = await featuredcompanyJobsCollection.insertMany(
-            featuredcompanyJobs
-          );
-          // return res.send(posted)
-          // console.log(posted);
-          if (posted.acknowledged == true) {
-            let result = await featuredcompanyJobsCollection.find().toArray();
-            // console.log(result);
+    // app.get("/featured/jobs", async (req, res) => {
+    //   try {
+    //     let isResult = await featuredcompanyJobsCollection.deleteMany();
 
-            res.send(result);
-          }
-        }
-      } catch (error) {
-        res.status(400).send({
-          success: false,
-          message: "Something went wrong",
-          error: error.message,
-        });
-      }
-    });
+
+    //     if (isResult.acknowledged == true) {
+    //       let posted = await featuredcompanyJobsCollection.insertMany(
+    //         featuredcompanyJobs
+    //       );
+    //       // return res.send(posted)
+    //       // console.log(posted);
+    //       if (posted.acknowledged == true) {
+    //         let result = await featuredcompanyJobsCollection.find().toArray();
+    //         // console.log(result);
+
+    //         res.send(result);
+    //       }
+    //     }
+    //   } catch (error) {
+    //     res.status(400).send({
+    //       success: false,
+    //       message: "Something went wrong",
+    //       error: error.message,
+    //     });
+    //   }
+    // });
 
 
 
