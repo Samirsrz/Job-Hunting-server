@@ -12,19 +12,17 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const companyJobs = require("./companyJobs/companyJobs.js");
 const featuredcompanyJobs = require("./featuredCompanyJobs/featuredCompanyJobs.js");
 const jwt = require("jsonwebtoken");
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 let port = process.env.port || 8000;
-const multer = require('multer');
-const Grid = require('gridfs-stream')
-const GridFSBucket = require('mongodb').GridFSBucket;
-const stream = require('stream');
+const multer = require("multer");
+const Grid = require("gridfs-stream");
+const GridFSBucket = require("mongodb").GridFSBucket;
+const stream = require("stream");
 const sponsored = require("./sponsoredCompanies/sponsored.js");
 // const multer = require("multer");
 // const Grid = require("gridfs-stream");
 // const GridFSBucket = require("mongodb").GridFSBucket;
 // const stream = require("stream");
-
-
 
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
@@ -47,20 +45,17 @@ const corsOptions = {
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:5175",
-
+    "https://job-hunting-52137.web.app",
     "https://job-hunting-job-seekers.vercel.app",
   ],
   credentials: true,
   optionSuccessStatus: 200,
 };
 
-
 app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(cookieParser());
-
-
 
 const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
@@ -373,74 +368,79 @@ async function run() {
       }
     });
 
-    app.post("/jobs/:id/apply", upload.single('file'), verifyToken, async (req, res) => {
-      try {
-        const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
-        const readableStream = new stream.Readable();
-        readableStream.push(req.file.buffer);
-        readableStream.push(null);
-        const uploadStream = bucket.openUploadStream(req.file.originalname, {
-          contentType: req.file.mimetype,
-        });
-        readableStream.pipe(uploadStream);
-        uploadStream.on('finish', async () => {
-          try {
-            const jobId = req.params.id;
-            const {
+    app.post(
+      "/jobs/:id/apply",
+      upload.single("file"),
+      verifyToken,
+      async (req, res) => {
+        try {
+          const bucket = new GridFSBucket(db, { bucketName: "uploads" });
+          const readableStream = new stream.Readable();
+          readableStream.push(req.file.buffer);
+          readableStream.push(null);
+          const uploadStream = bucket.openUploadStream(req.file.originalname, {
+            contentType: req.file.mimetype,
+          });
+          readableStream.pipe(uploadStream);
+          uploadStream.on("finish", async () => {
+            try {
+              const jobId = req.params.id;
+              const {
+                jobTitle,
 
-              jobTitle,
+                coverLetter = "",
+              } = req.body;
 
-              coverLetter = "",
-            } = req.body;
+              const existingApplication = await appliesCollection.findOne({
+                jobId: jobId,
+                applicantEmail: req.user.email,
+              });
 
-            const existingApplication = await appliesCollection.findOne({
-              jobId: jobId,
-              applicantEmail: req.user.email,
-            });
+              if (existingApplication) {
+                return res.status(400).send({
+                  success: false,
+                  message: "You have already applied for this job",
+                });
+              }
 
-            if (existingApplication) {
-              return res.status(400).send({
+              const application = {
+                jobId: jobId,
+                applicantEmail: req.user.email,
+                resume: uploadStream.id,
+                coverLetter,
+                status: "pending",
+                jobTitle,
+                appliedAt: new Date(),
+              };
+
+              const result = await appliesCollection.insertOne(application);
+
+              res.status(201).send({
+                success: true,
+                message: "Application submitted successfully",
+                data: result,
+              });
+            } catch (error) {
+              res.status(500).send({
                 success: false,
-                message: "You have already applied for this job",
+                message: "Something went wrong",
+                data: error.message,
               });
             }
+          });
 
-            const application = {
-              jobId: jobId,
-              applicantEmail: req.user.email,
-              resume: uploadStream.id,
-              coverLetter,
-              status: 'pending',
-              jobTitle,
-              appliedAt: new Date(),
-            };
-
-
-            const result = await appliesCollection.insertOne(application);
-
-            res.status(201).send({
-              success: true,
-              message: "Application submitted successfully",
-              data: result,
-            });
-          } catch (error) {
-            res.status(500).send({
-              success: false,
-              message: "Something went wrong",
-              data: error.message,
-            });
-          }
-        });
-
-        uploadStream.on('error', (err) => {
+          uploadStream.on("error", (err) => {
+            console.error(err);
+            return res
+              .status(500)
+              .json({ message: "Error uploading file", error: err });
+          });
+        } catch (err) {
           console.error(err);
-          return res.status(500).json({ message: 'Error uploading file', error: err });
-        });
-      } catch (err) {
-        console.error(err);
-        return res.status(500).json({ message: 'Server Error', error: err });
+          return res.status(500).json({ message: "Server Error", error: err });
+        }
       }
-    });
+    );
 
     //post Application
     app.post(
@@ -663,7 +663,7 @@ async function run() {
         const avgRating =
           reviews.length > 0
             ? reviews.reduce((acc, review) => acc + review.rating, 0) /
-            reviews.length
+              reviews.length
             : 0;
 
         await jobCollection.updateOne(
@@ -864,7 +864,6 @@ async function run() {
 
     // // random 5 data get from collection
 
-
     app.get("/company/collection/interested", async (req, res) => {
       try {
         let result = await companyJobsCollection
@@ -902,8 +901,6 @@ async function run() {
 
     // // featured company jobs
 
-
-
     // app.get('/featured/company/jobs', async (req, res) => {
     //   try {
     //     // console.log(companyJobs);
@@ -933,16 +930,12 @@ async function run() {
     //   }
     // })
 
-
-
-
-
     // app.get('/featured/company/jobs', async (req, res) => {
     //   try {
     //     // Extract pagination parameters
     //     const page = parseInt(req.query.page) || 1;
     //     const limit = parseInt(req.query.limit) || 12;
-    
+
     //     // Extract filters from the query or use example values
     //     const {
     //       selectedBusinessTypes = req.query.selectedBusinessTypes instanceof Array ==false && [req.query.selectedBusinessTypes],
@@ -950,52 +943,52 @@ async function run() {
     //       selectedIndustries = [],     // Industries (e.g., Telecom, Financial)
     //       selectedSectors = []         // Sectors (e.g., GS, EG)
     //     } = req.query;
-    
+
     //     console.log(selectedBusinessTypes);
-        
+
     //     // Initialize an empty filters object
     //     const filters = {};
-    
+
     //     // Apply filters for selectedBusinessTypes if they exist
     //     if (selectedBusinessTypes.length > 0) {
     //       filters.tags = {
     //         $in: selectedBusinessTypes.map(type => new RegExp(type, 'i')) // Case-insensitive regex matching
     //       };
     //     }
-    
+
     //     // Apply filters for selectedCompanyTypes if they exist
     //     if (selectedCompanyTypes.length > 0) {
     //       filters.tags = {
     //         $in: selectedCompanyTypes.map(type => new RegExp(type, 'i')) // Case-insensitive regex matching
     //       };
     //     }
-    
+
     //     // Apply filters for selectedIndustries if they exist
     //     if (selectedIndustries.length > 0) {
     //       filters.tags = {
     //         $in: selectedIndustries.map(industry => new RegExp(industry, 'i')) // Case-insensitive regex matching
     //       };
     //     }
-    
+
     //     // Apply filters for selectedSectors if they exist
     //     if (selectedSectors.length > 0) {
     //       filters.tags = {
     //         $in: selectedSectors.map(sector => new RegExp(sector, 'i')) // Case-insensitive regex matching
     //       };
     //     }
-    
+
     //     // Count the total jobs that match the filters
     //     const totalJobs = await featuredcompanyJobsCollection.countDocuments(filters);
     //     const totalPages = Math.ceil(totalJobs / limit);
-    
+
     //     // Fetch the jobs with pagination and filtering
     //     const jobs = await featuredcompanyJobsCollection.find(filters)
     //       .skip((page - 1) * limit)
     //       .limit(limit)
     //       .toArray();
-    
+
     //     console.log('Total jobs found:', jobs.length);
-    
+
     //     // Send the response with jobs and pagination info
     //     res.json({
     //       jobs,
@@ -1003,139 +996,138 @@ async function run() {
     //       currentPage: page,
     //       totalJobs
     //     });
-    
+
     //   } catch (error) {
     //     console.error('Error fetching jobs:', error);
     //     res.status(500).json({ error: error.message });
     //   }
     // });
-    
 
-
-
-    app.get('/featured/company/jobs', async (req, res) => {
+    app.get("/featured/company/jobs", async (req, res) => {
       try {
-          // Extract pagination parameters
-          const page = parseInt(req.query.page) || 1;
-          const limit = parseInt(req.query.limit) || 12;
-  
-          // Extract filters from the query, ensuring they are arrays
-          const selectedBusinessTypes = Array.isArray(req.query.selectedBusinessTypes)
-              ? req.query.selectedBusinessTypes
-              : req.query.selectedBusinessTypes ? [req.query.selectedBusinessTypes] : [];
-          
-          const selectedCompanyTypes = Array.isArray(req.query.selectedCompanyTypes)
-              ? req.query.selectedCompanyTypes
-              : req.query.selectedCompanyTypes ? [req.query.selectedCompanyTypes] : [];
-          
-          const selectedIndustries = Array.isArray(req.query.selectedIndustries)
-              ? req.query.selectedIndustries
-              : req.query.selectedIndustries ? [req.query.selectedIndustries] : [];
-          
-          const selectedSectors = Array.isArray(req.query.selectedSectors)
-              ? req.query.selectedSectors
-              : req.query.selectedSectors ? [req.query.selectedSectors] : [];
-  
-          // Initialize an empty filters object
-          const filters = {};
-  
-          // Apply filters for selectedBusinessTypes if they exist
-          if (selectedBusinessTypes.length > 0) {
-              filters.tags = {
-                  ...filters.tags,
-                  $in: selectedBusinessTypes.map(type => new RegExp(type, 'i')) // Case-insensitive regex matching
-              };
-          }
-  
-          // Apply filters for selectedCompanyTypes if they exist
-          if (selectedCompanyTypes.length > 0) {
-              filters.tags = {
-                  ...filters.tags,
-                  $in: selectedCompanyTypes.map(type => new RegExp(type, 'i')) // Case-insensitive regex matching
-              };
-          }
-  
-          // Apply filters for selectedIndustries if they exist
-          if (selectedIndustries.length > 0) {
-              filters.tags = {
-                  ...filters.tags,
-                  $in: selectedIndustries.map(industry => new RegExp(industry, 'i')) // Case-insensitive regex matching
-              };
-          }
-  
-          // Apply filters for selectedSectors if they exist
-          if (selectedSectors.length > 0) {
-              filters.tags = {
-                  ...filters.tags,
-                  $in: selectedSectors.map(sector => new RegExp(sector, 'i')) // Case-insensitive regex matching
-              };
-          }
-  
-          // Count the total jobs that match the filters
-          const totalJobs = await featuredcompanyJobsCollection.countDocuments(filters);
-          const totalPages = Math.ceil(totalJobs / limit);
-  
-          // Fetch the jobs with pagination and filtering
-          const jobs = await featuredcompanyJobsCollection.find(filters)
-              .skip((page - 1) * limit)
-              .limit(limit)
-              .toArray();
-  
-          console.log('Total jobs found:', jobs.length);
-  
-          // Send the response with jobs and pagination info
-          res.json({
-              jobs,
-              totalPages,
-              currentPage: page,
-              totalJobs
-          });
-  
+        // Extract pagination parameters
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12;
+
+        // Extract filters from the query, ensuring they are arrays
+        const selectedBusinessTypes = Array.isArray(
+          req.query.selectedBusinessTypes
+        )
+          ? req.query.selectedBusinessTypes
+          : req.query.selectedBusinessTypes
+          ? [req.query.selectedBusinessTypes]
+          : [];
+
+        const selectedCompanyTypes = Array.isArray(
+          req.query.selectedCompanyTypes
+        )
+          ? req.query.selectedCompanyTypes
+          : req.query.selectedCompanyTypes
+          ? [req.query.selectedCompanyTypes]
+          : [];
+
+        const selectedIndustries = Array.isArray(req.query.selectedIndustries)
+          ? req.query.selectedIndustries
+          : req.query.selectedIndustries
+          ? [req.query.selectedIndustries]
+          : [];
+
+        const selectedSectors = Array.isArray(req.query.selectedSectors)
+          ? req.query.selectedSectors
+          : req.query.selectedSectors
+          ? [req.query.selectedSectors]
+          : [];
+
+        // Initialize an empty filters object
+        const filters = {};
+
+        // Apply filters for selectedBusinessTypes if they exist
+        if (selectedBusinessTypes.length > 0) {
+          filters.tags = {
+            ...filters.tags,
+            $in: selectedBusinessTypes.map((type) => new RegExp(type, "i")), // Case-insensitive regex matching
+          };
+        }
+
+        // Apply filters for selectedCompanyTypes if they exist
+        if (selectedCompanyTypes.length > 0) {
+          filters.tags = {
+            ...filters.tags,
+            $in: selectedCompanyTypes.map((type) => new RegExp(type, "i")), // Case-insensitive regex matching
+          };
+        }
+
+        // Apply filters for selectedIndustries if they exist
+        if (selectedIndustries.length > 0) {
+          filters.tags = {
+            ...filters.tags,
+            $in: selectedIndustries.map(
+              (industry) => new RegExp(industry, "i")
+            ), // Case-insensitive regex matching
+          };
+        }
+
+        // Apply filters for selectedSectors if they exist
+        if (selectedSectors.length > 0) {
+          filters.tags = {
+            ...filters.tags,
+            $in: selectedSectors.map((sector) => new RegExp(sector, "i")), // Case-insensitive regex matching
+          };
+        }
+
+        // Count the total jobs that match the filters
+        const totalJobs = await featuredcompanyJobsCollection.countDocuments(
+          filters
+        );
+        const totalPages = Math.ceil(totalJobs / limit);
+
+        // Fetch the jobs with pagination and filtering
+        const jobs = await featuredcompanyJobsCollection
+          .find(filters)
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .toArray();
+
+        console.log("Total jobs found:", jobs.length);
+
+        // Send the response with jobs and pagination info
+        res.json({
+          jobs,
+          totalPages,
+          currentPage: page,
+          totalJobs,
+        });
       } catch (error) {
-          console.error('Error fetching jobs:', error);
-          res.status(500).json({ error: error.message });
+        console.error("Error fetching jobs:", error);
+        res.status(500).json({ error: error.message });
       }
-  });
-  
+    });
 
-
-
-  
-
-    app.get('/search', async (req, res) => {
+    app.get("/search", async (req, res) => {
       try {
-
         // Define the tags you're searching for (e.g., B2B and B2C)
-        const tagsToSearch = ['B2B', 'B2C'];
+        const tagsToSearch = ["B2B", "B2C"];
 
         // Find documents where the 'tags' array contains elements that match exactly or partially
         const query = {
           tags: {
-            $in: tagsToSearch.map(tag => new RegExp(tag, 'i')) // Case-insensitive regex matching
-          }
+            $in: tagsToSearch.map((tag) => new RegExp(tag, "i")), // Case-insensitive regex matching
+          },
         };
 
-        const result = await featuredcompanyJobsCollection.find(query).toArray();
+        const result = await featuredcompanyJobsCollection
+          .find(query)
+          .toArray();
         console.log(result);
 
         res.status(200).json(result);
       } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        res.status(500).json({ message: "Internal Server Error" });
       } finally {
         await client.close(); // Ensure to close the MongoDB connection
       }
     });
-
-
-
-
-
-
-
-
-
-
 
     // sponsored starts
     // app.get("/sponsored/jobs", async (req, res) => {
@@ -1166,13 +1158,8 @@ async function run() {
     //   }
     // });
 
-
-
-
-
-
-       // featured jobs
-     // for inserting featured data
+    // featured jobs
+    // for inserting featured data
     app.get("/featured/company/jobs", async (req, res) => {
       try {
         // console.log(companyJobs);
@@ -1202,7 +1189,6 @@ async function run() {
       }
     });
 
-
     app.get("/featured/jobs", async (req, res) => {
       try {
         let isResult = await featuredcompanyJobsCollection.deleteMany();
@@ -1229,38 +1215,35 @@ async function run() {
       }
     });
 
-
-
-    app.get('/sponsored/companies', async (req, res) => {
+    app.get("/sponsored/companies", async (req, res) => {
       try {
         const category = req.query.category; // category from the frontend query param
         let query = {};
 
         // If category is not "All", filter by the category
-        if (category && category !== 'All') {
+        if (category && category !== "All") {
           query = { tags: category }; // Check if 'tags' array contains the selected category
         }
 
-        const companies = await sponsoredCompanyJobsCollection.find(query).toArray();
+        const companies = await sponsoredCompanyJobsCollection
+          .find(query)
+          .toArray();
         res.status(200).json(companies);
       } catch (error) {
-        res.status(500).json({ message: 'Error fetching companies' });
+        res.status(500).json({ message: "Error fetching companies" });
       }
     });
 
     // sponsored ends
 
- 
-
-
-    app.get('/api/featured-jobs', async (req, res) => {
-      const category = req.query.category || 'All'; // Get the category from query parameters
+    app.get("/api/featured-jobs", async (req, res) => {
+      const category = req.query.category || "All"; // Get the category from query parameters
       console.log(category);
 
       try {
         let query = {};
-        if (category !== 'All') {
-          query = { tags: category }; // Filter by category tags 
+        if (category !== "All") {
+          query = { tags: category }; // Filter by category tags
         }
 
         const jobs = await featuredcompanyJobsCollection.find(query).toArray();
@@ -1269,7 +1252,7 @@ async function run() {
         res.status(200).json(jobs);
       } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ error: "Internal Server Error" });
       }
     });
 
@@ -1375,7 +1358,7 @@ async function run() {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
         const companyName = req.query.companyName;
-        console.log('cnam', companyName);
+        console.log("cnam", companyName);
 
         let isResult = await companyJobsCollection.deleteMany();
 
@@ -1412,7 +1395,7 @@ async function run() {
 
         // let result =await companyJobsCollection.find().toArray()
         // console.log(result);
-      } catch (error) { }
+      } catch (error) {}
     });
 
     //payment posting route
