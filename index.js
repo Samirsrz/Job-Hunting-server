@@ -48,6 +48,7 @@ const corsOptions = {
     "https://job-hunting-52137.web.app",
     "https://job-hunting-job-seekers.vercel.app",
     "https://lucky-tarsier-c4b37e.netlify.app/?lang=en",
+    // "https://lucky-tarsier-c4b37e.netlify.app"
   ],
   credentials: true,
   optionSuccessStatus: 200,
