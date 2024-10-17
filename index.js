@@ -92,7 +92,7 @@ async function run() {
     // // featured collection
     const featuredcompanyJobsCollection = db.collection("featuredJobs");
     const followersCollection = db.collection("followers");
-  
+
     const paymentCollection = db.collection("payment");
 
     // interviewsCollection
@@ -851,7 +851,6 @@ async function run() {
       try {
         let isResult = await featuredcompanyJobsCollection.deleteMany();
 
-
         if (isResult.acknowledged == true) {
           let posted = await featuredcompanyJobsCollection.insertMany(
             featuredcompanyJobs
@@ -883,7 +882,6 @@ async function run() {
         let result = await featuredcompanyJobsCollection.findOne({
           _id: new ObjectId(id),
         });
-
 
         res.send(result);
       } catch (error) {
@@ -919,12 +917,10 @@ async function run() {
       try {
         const { email } = req.params;
 
-
         // Check if email exists in the collection
         const result = await followersCollection.findOne({ email: email });
 
         if (result) {
-
           res
             .status(200)
             .send({ message: "Email found in followers", isFound: true });
@@ -934,7 +930,7 @@ async function run() {
             .send({ message: "Email not found in followers", isFound: false });
         }
       } catch (error) {
-       // console.error(error);
+        // console.error(error);
         res.status(500).send({ error: error.message });
       }
     });
@@ -950,7 +946,7 @@ async function run() {
           res.status(404).send({ message: " followers not found" });
         }
       } catch (error) {
-     //   console.error(error);
+        //   console.error(error);
         res.status(500).send({ error: error.message });
       }
     });
@@ -1015,60 +1011,56 @@ async function run() {
       } catch (error) {}
     });
 
+    //payment posting route
+    app.post("/api/payment", async (req, res) => {
+      const { amount, payerEmail, status, type } = req.body;
 
-//payment posting route
-app.post('/api/payment', async (req, res) => {
-  const { amount, payerEmail,status,type } = req.body; 
+      try {
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: parseInt(amount),
+          currency: "usd",
+          payment_method_types: ["card"],
+        });
 
-  try {
-   
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: parseInt(amount), 
-      currency: 'usd',
-      payment_method_types: ['card']
+        const paymentData = {
+          email: payerEmail,
+          amount,
+          createdAt: new Date(),
+          status,
+          type,
+          paymentIntentId: paymentIntent.id,
+        };
+
+        const result = await paymentCollection.insertOne(paymentData);
+
+        res.send({
+          clientSecret: paymentIntent.client_secret,
+        });
+      } catch (error) {
+        console.error("Error processing payment:", error);
+        return res.status(500).send("Error processing payment");
+      }
     });
 
-    
-    const paymentData = {
-      email:payerEmail, 
-      amount,
-      createdAt: new Date(),
-      status,
-      type,
-      paymentIntentId: paymentIntent.id, 
-    };
+    //get payment by email
+    app.get("/api/payment/:email", async (req, res) => {
+      const email = req.params.email;
 
-    const result = await paymentCollection.insertOne(paymentData);
+      try {
+        const payments = await paymentCollection.find({ email }).toArray();
 
-    res.send({
-      clientSecret: paymentIntent.client_secret
-    })
-
-  } catch (error) {
-    console.error('Error processing payment:', error);
-    return res.status(500).send('Error processing payment');
-  }
-});
-
-//get payment by email
-app.get('/api/payment/:email', async (req, res) => {
-  const email = req.params.email;
-
-  try {
-    const payments = await paymentCollection.find({ email }).toArray();
-
-    if (payments.length > 0) {
-      return res.json(payments);
-    } else {
-      return res.status(404).json({ message: 'No payments found for this ID' });
-    }
-  } catch (error) {
-    console.error('Error fetching payment data:', error);
-    return res.status(500).send('Error fetching payment data');
-  }
-});
-
-
+        if (payments.length > 0) {
+          return res.json(payments);
+        } else {
+          return res
+            .status(404)
+            .json({ message: "No payments found for this ID" });
+        }
+      } catch (error) {
+        console.error("Error fetching payment data:", error);
+        return res.status(500).send("Error fetching payment data");
+      }
+    });
 
     app.delete("/jobs/:id/apply", verifyToken, async (req, res) => {
       try {
@@ -1119,8 +1111,14 @@ app.get('/api/payment/:email', async (req, res) => {
     app.post("/schedule", async (req, res) => {
       const { eventName, description, duration, selectedDate, selectedTime } =
         req.body;
-
-      if (!eventName || !duration || !selectedDate || !selectedTime) {
+      console.log(req.body);
+      if (
+        !eventName ||
+        !description ||
+        !duration ||
+        !selectedDate ||
+        !selectedTime
+      ) {
         return res
           .status(400)
           .json({ message: "Please provide all required fields" });
@@ -1134,9 +1132,8 @@ app.get('/api/payment/:email', async (req, res) => {
         selectedTime,
       };
       try {
-        const result = await db
-          .interviewsCollection("interviews")
-          .insertOne(newEvent);
+        const result = await interviewsCollection.insertOne(newEvent);
+        // console.log(result);
         res
           .status(201)
           .json({ message: "Interview scheduled successfully", data: result });
@@ -1149,8 +1146,7 @@ app.get('/api/payment/:email', async (req, res) => {
 
     app.get("/schedule", async (req, res) => {
       try {
-        const interviews = await db
-          .interviewsCollection("interviews")
+        const interviews = await interviewsCollection("interviews")
           .find()
           .toArray();
         res.status(200).json(interviews);
