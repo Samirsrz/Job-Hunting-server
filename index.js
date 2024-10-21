@@ -48,7 +48,7 @@ const corsOptions = {
     "https://job-hunting-52137.web.app",
     "https://job-hunting-job-seekers.vercel.app",
     // "https://lucky-tarsier-c4b37e.netlify.app/?lang=en",
-    "https://lucky-tarsier-c4b37e.netlify.app"
+    "https://lucky-tarsier-c4b37e.netlify.app",
   ],
   credentials: true,
   optionSuccessStatus: 200,
@@ -416,7 +416,7 @@ async function run() {
               };
 
               const result = await appliesCollection.insertOne(application);
-
+              console.log(application);
               res.status(201).send({
                 success: true,
                 message: "Application submitted successfully",
