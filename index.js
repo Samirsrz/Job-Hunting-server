@@ -18,6 +18,7 @@ const Grid = require('gridfs-stream')
 const GridFSBucket = require('mongodb').GridFSBucket;
 const stream = require('stream');
 const sponsored = require("./sponsoredCompanies/sponsored.js");
+const eventChallenge=require("./eventChallenge/eventChallenge.js")
 // const multer = require("multer");
 // const Grid = require("gridfs-stream");
 // const GridFSBucket = require("mongodb").GridFSBucket;
@@ -100,12 +101,12 @@ async function run() {
     // soposored companies collection
 
     const sponsoredCompanyJobsCollection = db.collection("sponsoredJobs");
-
+    const eventChallengeCollection=db.collection('eventJobs')
     // // followers collection
     // // featured collection
     const featuredcompanyJobsCollection = db.collection("featuredJobs");
     const followersCollection = db.collection("followers");
-  
+
     const paymentCollection = db.collection("payment");
 
     // interviewsCollection
@@ -939,7 +940,7 @@ async function run() {
     //     // Extract pagination parameters
     //     const page = parseInt(req.query.page) || 1;
     //     const limit = parseInt(req.query.limit) || 12;
-    
+
     //     // Extract filters from the query or use example values
     //     const {
     //       selectedBusinessTypes = req.query.selectedBusinessTypes instanceof Array ==false && [req.query.selectedBusinessTypes],
@@ -947,52 +948,52 @@ async function run() {
     //       selectedIndustries = [],     // Industries (e.g., Telecom, Financial)
     //       selectedSectors = []         // Sectors (e.g., GS, EG)
     //     } = req.query;
-    
+
     //     console.log(selectedBusinessTypes);
-        
+
     //     // Initialize an empty filters object
     //     const filters = {};
-    
+
     //     // Apply filters for selectedBusinessTypes if they exist
     //     if (selectedBusinessTypes.length > 0) {
     //       filters.tags = {
     //         $in: selectedBusinessTypes.map(type => new RegExp(type, 'i')) // Case-insensitive regex matching
     //       };
     //     }
-    
+
     //     // Apply filters for selectedCompanyTypes if they exist
     //     if (selectedCompanyTypes.length > 0) {
     //       filters.tags = {
     //         $in: selectedCompanyTypes.map(type => new RegExp(type, 'i')) // Case-insensitive regex matching
     //       };
     //     }
-    
+
     //     // Apply filters for selectedIndustries if they exist
     //     if (selectedIndustries.length > 0) {
     //       filters.tags = {
     //         $in: selectedIndustries.map(industry => new RegExp(industry, 'i')) // Case-insensitive regex matching
     //       };
     //     }
-    
+
     //     // Apply filters for selectedSectors if they exist
     //     if (selectedSectors.length > 0) {
     //       filters.tags = {
     //         $in: selectedSectors.map(sector => new RegExp(sector, 'i')) // Case-insensitive regex matching
     //       };
     //     }
-    
+
     //     // Count the total jobs that match the filters
     //     const totalJobs = await featuredcompanyJobsCollection.countDocuments(filters);
     //     const totalPages = Math.ceil(totalJobs / limit);
-    
+
     //     // Fetch the jobs with pagination and filtering
     //     const jobs = await featuredcompanyJobsCollection.find(filters)
     //       .skip((page - 1) * limit)
     //       .limit(limit)
     //       .toArray();
-    
+
     //     console.log('Total jobs found:', jobs.length);
-    
+
     //     // Send the response with jobs and pagination info
     //     res.json({
     //       jobs,
@@ -1000,104 +1001,104 @@ async function run() {
     //       currentPage: page,
     //       totalJobs
     //     });
-    
+
     //   } catch (error) {
     //     console.error('Error fetching jobs:', error);
     //     res.status(500).json({ error: error.message });
     //   }
     // });
-    
+
 
 
 
     app.get('/featured/company/jobs', async (req, res) => {
       try {
-          // Extract pagination parameters
-          const page = parseInt(req.query.page) || 1;
-          const limit = parseInt(req.query.limit) || 12;
-  
-          // Extract filters from the query, ensuring they are arrays
-          const selectedBusinessTypes = Array.isArray(req.query.selectedBusinessTypes)
-              ? req.query.selectedBusinessTypes
-              : req.query.selectedBusinessTypes ? [req.query.selectedBusinessTypes] : [];
-          
-          const selectedCompanyTypes = Array.isArray(req.query.selectedCompanyTypes)
-              ? req.query.selectedCompanyTypes
-              : req.query.selectedCompanyTypes ? [req.query.selectedCompanyTypes] : [];
-          
-          const selectedIndustries = Array.isArray(req.query.selectedIndustries)
-              ? req.query.selectedIndustries
-              : req.query.selectedIndustries ? [req.query.selectedIndustries] : [];
-          
-          const selectedSectors = Array.isArray(req.query.selectedSectors)
-              ? req.query.selectedSectors
-              : req.query.selectedSectors ? [req.query.selectedSectors] : [];
-  
-          // Initialize an empty filters object
-          const filters = {};
-  
-          // Apply filters for selectedBusinessTypes if they exist
-          if (selectedBusinessTypes.length > 0) {
-              filters.tags = {
-                  ...filters.tags,
-                  $in: selectedBusinessTypes.map(type => new RegExp(type, 'i')) // Case-insensitive regex matching
-              };
-          }
-  
-          // Apply filters for selectedCompanyTypes if they exist
-          if (selectedCompanyTypes.length > 0) {
-              filters.tags = {
-                  ...filters.tags,
-                  $in: selectedCompanyTypes.map(type => new RegExp(type, 'i')) // Case-insensitive regex matching
-              };
-          }
-  
-          // Apply filters for selectedIndustries if they exist
-          if (selectedIndustries.length > 0) {
-              filters.tags = {
-                  ...filters.tags,
-                  $in: selectedIndustries.map(industry => new RegExp(industry, 'i')) // Case-insensitive regex matching
-              };
-          }
-  
-          // Apply filters for selectedSectors if they exist
-          if (selectedSectors.length > 0) {
-              filters.tags = {
-                  ...filters.tags,
-                  $in: selectedSectors.map(sector => new RegExp(sector, 'i')) // Case-insensitive regex matching
-              };
-          }
-  
-          // Count the total jobs that match the filters
-          const totalJobs = await featuredcompanyJobsCollection.countDocuments(filters);
-          const totalPages = Math.ceil(totalJobs / limit);
-  
-          // Fetch the jobs with pagination and filtering
-          const jobs = await featuredcompanyJobsCollection.find(filters)
-              .skip((page - 1) * limit)
-              .limit(limit)
-              .toArray();
-  
-          console.log('Total jobs found:', jobs.length);
-  
-          // Send the response with jobs and pagination info
-          res.json({
-              jobs,
-              totalPages,
-              currentPage: page,
-              totalJobs
-          });
-  
+        // Extract pagination parameters
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12;
+
+        // Extract filters from the query, ensuring they are arrays
+        const selectedBusinessTypes = Array.isArray(req.query.selectedBusinessTypes)
+          ? req.query.selectedBusinessTypes
+          : req.query.selectedBusinessTypes ? [req.query.selectedBusinessTypes] : [];
+
+        const selectedCompanyTypes = Array.isArray(req.query.selectedCompanyTypes)
+          ? req.query.selectedCompanyTypes
+          : req.query.selectedCompanyTypes ? [req.query.selectedCompanyTypes] : [];
+
+        const selectedIndustries = Array.isArray(req.query.selectedIndustries)
+          ? req.query.selectedIndustries
+          : req.query.selectedIndustries ? [req.query.selectedIndustries] : [];
+
+        const selectedSectors = Array.isArray(req.query.selectedSectors)
+          ? req.query.selectedSectors
+          : req.query.selectedSectors ? [req.query.selectedSectors] : [];
+
+        // Initialize an empty filters object
+        const filters = {};
+
+        // Apply filters for selectedBusinessTypes if they exist
+        if (selectedBusinessTypes.length > 0) {
+          filters.tags = {
+            ...filters.tags,
+            $in: selectedBusinessTypes.map(type => new RegExp(type, 'i')) // Case-insensitive regex matching
+          };
+        }
+
+        // Apply filters for selectedCompanyTypes if they exist
+        if (selectedCompanyTypes.length > 0) {
+          filters.tags = {
+            ...filters.tags,
+            $in: selectedCompanyTypes.map(type => new RegExp(type, 'i')) // Case-insensitive regex matching
+          };
+        }
+
+        // Apply filters for selectedIndustries if they exist
+        if (selectedIndustries.length > 0) {
+          filters.tags = {
+            ...filters.tags,
+            $in: selectedIndustries.map(industry => new RegExp(industry, 'i')) // Case-insensitive regex matching
+          };
+        }
+
+        // Apply filters for selectedSectors if they exist
+        if (selectedSectors.length > 0) {
+          filters.tags = {
+            ...filters.tags,
+            $in: selectedSectors.map(sector => new RegExp(sector, 'i')) // Case-insensitive regex matching
+          };
+        }
+
+        // Count the total jobs that match the filters
+        const totalJobs = await featuredcompanyJobsCollection.countDocuments(filters);
+        const totalPages = Math.ceil(totalJobs / limit);
+
+        // Fetch the jobs with pagination and filtering
+        const jobs = await featuredcompanyJobsCollection.find(filters)
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .toArray();
+
+        console.log('Total jobs found:', jobs.length);
+
+        // Send the response with jobs and pagination info
+        res.json({
+          jobs,
+          totalPages,
+          currentPage: page,
+          totalJobs
+        });
+
       } catch (error) {
-          console.error('Error fetching jobs:', error);
-          res.status(500).json({ error: error.message });
+        console.error('Error fetching jobs:', error);
+        res.status(500).json({ error: error.message });
       }
-  });
-  
+    });
 
 
 
-  
+
+
 
     app.get('/search', async (req, res) => {
       try {
@@ -1168,8 +1169,8 @@ async function run() {
 
 
 
-       // featured jobs
-     // for inserting featured data
+    // featured jobs
+    // for inserting featured data
     // app.get("/featured/company/jobs", async (req, res) => {
     //   try {
     //     // console.log(companyJobs);
@@ -1228,6 +1229,46 @@ async function run() {
     // });
 
 
+    // // event challenge
+
+    app.get("/event/challenge", async (req, res) => {
+      try {
+        let isResult = await eventChallengeCollection.deleteMany();
+
+
+        if (isResult.acknowledged == true) {
+          let posted = await eventChallengeCollection.insertMany(
+            eventChallenge
+          );
+          // return res.send(posted)
+          // console.log(posted);
+          if (posted.acknowledged == true) {
+            let result = await eventChallengeCollection.find().toArray();
+            // console.log(result);
+
+            res.send(result);
+          }
+        }
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          error: error.message,
+        });
+      }
+    });
+
+
+
+    app.get("/event/challenge/:id",async (req,res) => {
+      try {
+        let result=await eventChallengeCollection.findOne({_id:new ObjectId(req.params.id)})
+        return res.send(result)
+      } catch (error) {
+        return res.json({message:'something error',error:error.message}).status(500)
+      }
+    })
+
 
     app.get('/sponsored/companies', async (req, res) => {
       try {
@@ -1248,7 +1289,7 @@ async function run() {
 
     // sponsored ends
 
- 
+
 
 
     app.get('/api/featured-jobs', async (req, res) => {
@@ -1334,7 +1375,7 @@ async function run() {
             .send({ message: "Email not found in followers", isFound: false });
         }
       } catch (error) {
-       // console.error(error);
+        // console.error(error);
         res.status(500).send({ error: error.message });
       }
     });
@@ -1350,7 +1391,7 @@ async function run() {
           res.status(404).send({ message: " followers not found" });
         }
       } catch (error) {
-     //   console.error(error);
+        //   console.error(error);
         res.status(500).send({ error: error.message });
       }
     });
@@ -1378,38 +1419,29 @@ async function run() {
         const companyName = req.query.companyName;
         console.log('cnam', companyName);
 
-        let isResult = await companyJobsCollection.deleteMany();
+        const totalJobs = await companyJobsCollection.countDocuments();
+        const totalPages = Math.ceil(totalJobs / limit);
 
-        // console.log(isResult);
+        // if (posted.acknowledged == true) {
+        //   let result = await companyJobsCollection.find().toArray()
+        //   return res.send(result)
+        // }
 
-        if (isResult.acknowledged == true) {
-          let posted = await companyJobsCollection.insertMany(companyJobs);
-          // return res.send(posted)
-          // console.log(posted);
+      
+          const jobs = await companyJobsCollection
+            .find({ companyName: companyName })
+            .skip((page - 1) * limit) // Skip the jobs of previous pages
+            .limit(limit) // Limit the jobs to 'limit' number
+            .toArray();
 
-          const totalJobs = await companyJobsCollection.countDocuments();
-          const totalPages = Math.ceil(totalJobs / limit);
+          res.json({
+            jobs,
+            totalPages,
+            currentPage: page,
+            totalJobs,
+          });
+      
 
-          // if (posted.acknowledged == true) {
-          //   let result = await companyJobsCollection.find().toArray()
-          //   return res.send(result)
-          // }
-
-          if (posted.acknowledged == true) {
-            const jobs = await companyJobsCollection
-              .find()
-              .skip((page - 1) * limit) // Skip the jobs of previous pages
-              .limit(limit) // Limit the jobs to 'limit' number
-              .toArray();
-
-            res.json({
-              jobs,
-              totalPages,
-              currentPage: page,
-              totalJobs,
-            });
-          }
-        }
 
         // let result =await companyJobsCollection.find().toArray()
         // console.log(result);
@@ -1417,57 +1449,57 @@ async function run() {
     });
 
 
-//payment posting route
-app.post('/api/payment', async (req, res) => {
-  const { amount, payerEmail,status,type } = req.body; 
+    //payment posting route
+    app.post('/api/payment', async (req, res) => {
+      const { amount, payerEmail, status, type } = req.body;
 
-  try {
-   
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: parseInt(amount), 
-      currency: 'usd',
-      payment_method_types: ['card']
+      try {
+
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: parseInt(amount),
+          currency: 'usd',
+          payment_method_types: ['card']
+        });
+
+
+        const paymentData = {
+          email: payerEmail,
+          amount,
+          createdAt: new Date(),
+          status,
+          type,
+          paymentIntentId: paymentIntent.id,
+        };
+
+        const result = await paymentCollection.insertOne(paymentData);
+
+        res.send({
+          clientSecret: paymentIntent.client_secret
+        })
+
+      } catch (error) {
+        console.error('Error processing payment:', error);
+        return res.status(500).send('Error processing payment');
+      }
     });
 
-    
-    const paymentData = {
-      email:payerEmail, 
-      amount,
-      createdAt: new Date(),
-      status,
-      type,
-      paymentIntentId: paymentIntent.id, 
-    };
+    //get payment by email
+    app.get('/api/payment/:email', async (req, res) => {
+      const email = req.params.email;
 
-    const result = await paymentCollection.insertOne(paymentData);
+      try {
+        const payments = await paymentCollection.find({ email }).toArray();
 
-    res.send({
-      clientSecret: paymentIntent.client_secret
-    })
-
-  } catch (error) {
-    console.error('Error processing payment:', error);
-    return res.status(500).send('Error processing payment');
-  }
-});
-
-//get payment by email
-app.get('/api/payment/:email', async (req, res) => {
-  const email = req.params.email;
-
-  try {
-    const payments = await paymentCollection.find({ email }).toArray();
-
-    if (payments.length > 0) {
-      return res.json(payments);
-    } else {
-      return res.status(404).json({ message: 'No payments found for this ID' });
-    }
-  } catch (error) {
-    console.error('Error fetching payment data:', error);
-    return res.status(500).send('Error fetching payment data');
-  }
-});
+        if (payments.length > 0) {
+          return res.json(payments);
+        } else {
+          return res.status(404).json({ message: 'No payments found for this ID' });
+        }
+      } catch (error) {
+        console.error('Error fetching payment data:', error);
+        return res.status(500).send('Error fetching payment data');
+      }
+    });
 
 
 
