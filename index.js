@@ -249,6 +249,13 @@ async function run() {
       res.send(result);
     });
 
+    //get all companny data
+    app.get(`/company-data`, async (req, res) => {
+      const id = req.body;
+      const result = await companyCollection.find().toArray();
+      res.send(result);
+    });
+
     //  jobs related api
     app.get("/jobs", async (req, res) => {
       try {
@@ -370,6 +377,7 @@ async function run() {
       }
     });
 
+    //post Application
     app.post(
       "/jobs/:id/apply",
       upload.single("file"),
@@ -388,9 +396,11 @@ async function run() {
             try {
               const jobId = req.params.id;
               const {
+                company,
                 jobTitle,
-
+                email,
                 coverLetter = "",
+                applicantName,
               } = req.body;
 
               const existingApplication = await appliesCollection.findOne({
@@ -407,12 +417,17 @@ async function run() {
 
               const application = {
                 jobId: jobId,
-                applicantEmail: req.user.email,
+                applicant: {
+                  name: applicantName,
+                  email: req?.user?.email,
+                },
                 resume: uploadStream.id,
                 coverLetter,
                 status: "pending",
                 jobTitle,
                 appliedAt: new Date(),
+                email,
+                company,
               };
 
               const result = await appliesCollection.insertOne(application);
