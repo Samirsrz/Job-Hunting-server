@@ -249,6 +249,13 @@ async function run() {
       res.send(result);
     });
 
+    //get all companny data
+    app.get(`/company-data`, async (req, res) => {
+      const id = req.body;
+      const result = await companyCollection.find().toArray();
+      res.send(result);
+    });
+
     //  jobs related api
     app.get("/jobs", async (req, res) => {
       try {
