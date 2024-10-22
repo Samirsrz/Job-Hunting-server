@@ -858,6 +858,38 @@ async function run() {
       }
     });
 
+    // // search filter
+
+    app.get('/job/search', async (req, res) => {
+      try { 
+        const { location, type } = req.query;
+    console.log(req.query);
+    
+        // Create a query object dynamically based on the existence of the parameters
+        let query = {};
+    
+        if (location) {
+          query.location = location;
+        }
+    
+        if (type) {
+          query.type = type;
+        }
+    
+        // Assuming you have a MongoDB collection called 'jobs'
+        const jobs = await jobCollection.find(query).toArray();
+    
+        if (jobs.length > 0) {
+          res.status(200).json(jobs);
+        } else {
+          res.status(404).json({ message: 'No jobs found matching the criteria' });
+        }
+      } catch (error) {
+        res.status(500).json({ message: 'Server Error', error });
+      }
+    });
+    
+
     // // company jobs collection
 
     // // random 5 data get from collection
