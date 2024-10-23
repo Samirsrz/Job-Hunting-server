@@ -1578,7 +1578,7 @@ async function run() {
           data: error.message,
         });
       }
-    });
+    }); 
 
     // Interview related route
     app.post("/schedule", async (req, res) => {
