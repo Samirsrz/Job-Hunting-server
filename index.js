@@ -18,7 +18,7 @@ const Grid = require('gridfs-stream')
 const GridFSBucket = require('mongodb').GridFSBucket;
 const stream = require('stream');
 const sponsored = require("./sponsoredCompanies/sponsored.js");
-const eventChallenge=require("./eventChallenge/eventChallenge.js")
+const eventChallenge = require("./eventChallenge/eventChallenge.js")
 // const multer = require("multer");
 // const Grid = require("gridfs-stream");
 // const GridFSBucket = require("mongodb").GridFSBucket;
@@ -101,7 +101,7 @@ async function run() {
     // soposored companies collection
 
     const sponsoredCompanyJobsCollection = db.collection("sponsoredJobs");
-    const eventChallengeCollection=db.collection('eventJobs')
+    const eventChallengeCollection = db.collection('eventJobs')
     // // followers collection
     // // featured collection
     const featuredcompanyJobsCollection = db.collection("featuredJobs");
@@ -858,27 +858,55 @@ async function run() {
       }
     });
 
+
+    // // home branch
+
+    app.get('/category-button', async (req, res) => {
+      try {
+        // Destructure the category query parameter from req.query
+        let { category } = req.query;
+        console.log(category);
+    
+        // Use the category variable to find jobs
+        let result = await jobCollection.find({ category }).toArray();
+        console.log(result);
+        
+        // Send the result back to the client
+        return res.send(result);
+    
+      } catch (error) {
+        // Handle errors and send them to the client
+        return res.status(500).send(error.message);
+      }
+    });
+    
+
+
+
+
+    //
+
     // // search filter
 
     app.get('/job/search', async (req, res) => {
-      try { 
+      try {
         const { location, type } = req.query;
-    console.log(req.query);
-    
+        console.log(req.query);
+
         // Create a query object dynamically based on the existence of the parameters
         let query = {};
-    
+
         if (location) {
           query.location = location;
         }
-    
+
         if (type) {
           query.type = type;
         }
-    
+
         // Assuming you have a MongoDB collection called 'jobs'
         const jobs = await jobCollection.find(query).toArray();
-    
+
         if (jobs.length > 0) {
           res.status(200).json(jobs);
         } else {
@@ -888,7 +916,7 @@ async function run() {
         res.status(500).json({ message: 'Server Error', error });
       }
     });
-    
+
 
     // // company jobs collection
 
@@ -1292,12 +1320,12 @@ async function run() {
 
 
 
-    app.get("/event/challenge/:id",async (req,res) => {
+    app.get("/event/challenge/:id", async (req, res) => {
       try {
-        let result=await eventChallengeCollection.findOne({_id:new ObjectId(req.params.id)})
+        let result = await eventChallengeCollection.findOne({ _id: new ObjectId(req.params.id) })
         return res.send(result)
       } catch (error) {
-        return res.json({message:'something error',error:error.message}).status(500)
+        return res.json({ message: 'something error', error: error.message }).status(500)
       }
     })
 
@@ -1459,20 +1487,20 @@ async function run() {
         //   return res.send(result)
         // }
 
-      
-          const jobs = await companyJobsCollection
-            .find({ companyName: companyName })
-            .skip((page - 1) * limit) // Skip the jobs of previous pages
-            .limit(limit) // Limit the jobs to 'limit' number
-            .toArray();
 
-          res.json({
-            jobs,
-            totalPages,
-            currentPage: page,
-            totalJobs,
-          });
-      
+        const jobs = await companyJobsCollection
+          .find({ companyName: companyName })
+          .skip((page - 1) * limit) // Skip the jobs of previous pages
+          .limit(limit) // Limit the jobs to 'limit' number
+          .toArray();
+
+        res.json({
+          jobs,
+          totalPages,
+          currentPage: page,
+          totalJobs,
+        });
+
 
 
         // let result =await companyJobsCollection.find().toArray()
@@ -1578,7 +1606,7 @@ async function run() {
           data: error.message,
         });
       }
-    }); 
+    });
 
     // Interview related route
     app.post("/schedule", async (req, res) => {

@@ -248,8 +248,8 @@
 
 let event = [
     {
-        "logo": "https://example.com/logo1.png",
-        "coverPhoto": "https://example.com/coverPhoto1.png",
+        "logo": "https://img.naukimg.com/logo_images/groups/v1/5563000.gif",
+        "coverPhoto": "https://static.naukimg.com/s/0/0/i/Events/bannerFallback/eventsBannerFallback_2.png",
         "companyName": "Google",
         "title": "Full Stack Developer Hiring Challenge",
         "tags": ["JavaScript", "React", "Node.js", "Full Stack", "Web Development"],
@@ -271,7 +271,7 @@ let event = [
     },
     {
         "logo": "https://example.com/logo2.png",
-        "coverPhoto": "https://example.com/coverPhoto2.png",
+        "coverPhoto": "https://static.naukimg.com/s/0/0/i/Events/bannerFallback/eventsBannerFallback_7.png",
         "companyName": "Microsoft",
         "title": "Cloud Engineer Hiring Event",
         "tags": ["Azure", "Cloud Computing", "DevOps", "CI/CD"],
@@ -292,8 +292,8 @@ let event = [
         "CompanyType": "Public"
     },
     {
-        "logo": "https://example.com/logo3.png",
-        "coverPhoto": "https://example.com/coverPhoto3.png",
+        "logo": "https://cdn.pixabay.com/photo/2024/10/03/20/33/robin-9094847_1280.jpg",
+        "coverPhoto": "https://cdn.pixabay.com/photo/2024/10/17/16/14/waterfall-9128051_1280.jpg",
         "companyName": "Amazon",
         "title": "AWS Solutions Architect Hiring Event",
         "tags": ["AWS", "Cloud", "Architecture", "DevOps"],
@@ -314,8 +314,8 @@ let event = [
         "CompanyType": "Public"
     },
     {
-        "logo": "https://example.com/logo4.png",
-        "coverPhoto": "https://example.com/coverPhoto4.png",
+        "logo": "https://cdn.pixabay.com/photo/2024/09/25/14/32/lighthouse-9073925_1280.png",
+        "coverPhoto": "https://cdn.pixabay.com/photo/2022/11/24/21/25/oak-7615084_1280.jpg",
         "companyName": "Facebook",
         "title": "Frontend Developer Hiring Challenge",
         "tags": ["React", "JavaScript", "CSS", "Frontend"],
