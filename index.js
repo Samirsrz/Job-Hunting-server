@@ -47,6 +47,7 @@ const corsOptions = {
     "http://localhost:5175",
 
     "https://job-hunting-job-seekers.vercel.app",
+    "https://innovative-codex.web.app"
   ],
   credentials: true,
   optionSuccessStatus: 200,
