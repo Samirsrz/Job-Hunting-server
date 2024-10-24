@@ -373,74 +373,6 @@ async function run() {
       }
     });
 
-    app.post("/jobs/:id/apply", upload.single('file'), verifyToken, async (req, res) => {
-      try {
-        const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
-        const readableStream = new stream.Readable();
-        readableStream.push(req.file.buffer);
-        readableStream.push(null);
-        const uploadStream = bucket.openUploadStream(req.file.originalname, {
-          contentType: req.file.mimetype,
-        });
-        readableStream.pipe(uploadStream);
-        uploadStream.on('finish', async () => {
-          try {
-            const jobId = req.params.id;
-            const {
-
-              jobTitle,
-
-              coverLetter = "",
-            } = req.body;
-
-            const existingApplication = await appliesCollection.findOne({
-              jobId: jobId,
-              applicantEmail: req.user.email,
-            });
-
-            if (existingApplication) {
-              return res.status(400).send({
-                success: false,
-                message: "You have already applied for this job",
-              });
-            }
-
-            const application = {
-              jobId: jobId,
-              applicantEmail: req.user.email,
-              resume: uploadStream.id,
-              coverLetter,
-              status: 'pending',
-              jobTitle,
-              appliedAt: new Date(),
-            };
-
-
-            const result = await appliesCollection.insertOne(application);
-
-            res.status(201).send({
-              success: true,
-              message: "Application submitted successfully",
-              data: result,
-            });
-          } catch (error) {
-            res.status(500).send({
-              success: false,
-              message: "Something went wrong",
-              data: error.message,
-            });
-          }
-        });
-
-        uploadStream.on('error', (err) => {
-          console.error(err);
-          return res.status(500).json({ message: 'Error uploading file', error: err });
-        });
-      } catch (err) {
-        console.error(err);
-        return res.status(500).json({ message: 'Server Error', error: err });
-      }
-    });
 
     //post Application
     app.post(
@@ -1141,7 +1073,8 @@ async function run() {
           .limit(limit)
           .toArray();
 
-        console.log('Total jobs found:', jobs.length);
+        // console.log("Total jobs found:", jobs.length);
+        // console.log('Total jobs found:', jobs.length);
 
         // Send the response with jobs and pagination info
         res.json({
@@ -1175,8 +1108,10 @@ async function run() {
           }
         };
 
-        const result = await featuredcompanyJobsCollection.find(query).toArray();
-        console.log(result);
+        const result = await featuredcompanyJobsCollection
+          .find(query)
+          .toArray();
+        // console.log(result);
 
         res.status(200).json(result);
       } catch (error) {
@@ -1479,7 +1414,6 @@ async function run() {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
         const companyName = req.query.companyName;
-        console.log('cnam', companyName);
 
         const totalJobs = await companyJobsCollection.countDocuments();
         const totalPages = Math.ceil(totalJobs / limit);
@@ -1614,8 +1548,14 @@ async function run() {
     app.post("/schedule", async (req, res) => {
       const { eventName, description, duration, selectedDate, selectedTime } =
         req.body;
-
-      if (!eventName || !duration || !selectedDate || !selectedTime) {
+      // console.log(req.body);
+      if (
+        !eventName ||
+        !description ||
+        !duration ||
+        !selectedDate ||
+        !selectedTime
+      ) {
         return res
           .status(400)
           .json({ message: "Please provide all required fields" });
