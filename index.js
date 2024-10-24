@@ -47,8 +47,8 @@ const corsOptions = {
     "http://localhost:5175",
     "https://job-hunting-52137.web.app",
     "https://job-hunting-job-seekers.vercel.app",
-    "https://lucky-tarsier-c4b37e.netlify.app/?lang=en",
-    // "https://lucky-tarsier-c4b37e.netlify.app"
+    // "https://lucky-tarsier-c4b37e.netlify.app/?lang=en",
+    "https://lucky-tarsier-c4b37e.netlify.app",
   ],
   credentials: true,
   optionSuccessStatus: 200,
@@ -251,6 +251,13 @@ async function run() {
       res.send(result);
     });
 
+    //get all companny data
+    app.get(`/company-data`, async (req, res) => {
+      const id = req.body;
+      const result = await companyCollection.find().toArray();
+      res.send(result);
+    });
+
     //  jobs related api
     app.get("/jobs", async (req, res) => {
       try {
@@ -278,6 +285,39 @@ async function run() {
           success: false,
           message: "Something went wrong",
           data: error,
+        });
+      }
+    });
+
+    app.get("/jobsByIds", async (req, res) => {
+      try {
+        const ids = req.query.ids;
+
+        if (!ids) {
+          return res.status(400).send({
+            success: false,
+            message: "Invalid input: At least one ID is required.",
+          });
+        }
+
+        const idArray = Array.isArray(ids) ? ids : [ids];
+
+        const objectIds = idArray.map((id) => new ObjectId(id));
+
+        const results = await jobCollection
+          .find({ _id: { $in: objectIds } })
+          .toArray();
+
+        res.status(200).send({
+          success: true,
+          message: "Jobs fetched successfully",
+          data: results,
+        });
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          data: error.message,
         });
       }
     });
@@ -372,6 +412,7 @@ async function run() {
       }
     });
 
+    //post Application
     app.post(
       "/jobs/:id/apply",
       upload.single("file"),
@@ -390,9 +431,11 @@ async function run() {
             try {
               const jobId = req.params.id;
               const {
+                company,
                 jobTitle,
-
+                email,
                 coverLetter = "",
+                applicantName,
               } = req.body;
 
               const existingApplication = await appliesCollection.findOne({
@@ -409,16 +452,21 @@ async function run() {
 
               const application = {
                 jobId: jobId,
-                applicantEmail: req.user.email,
+                applicant: {
+                  name: applicantName,
+                  email: req?.user?.email,
+                },
                 resume: uploadStream.id,
                 coverLetter,
                 status: "pending",
                 jobTitle,
                 appliedAt: new Date(),
+                email,
+                company,
               };
 
               const result = await appliesCollection.insertOne(application);
-
+              console.log(application);
               res.status(201).send({
                 success: true,
                 message: "Application submitted successfully",
