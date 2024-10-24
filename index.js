@@ -464,7 +464,7 @@ async function run() {
               };
 
               const result = await appliesCollection.insertOne(application);
-              console.log(application);
+              // console.log(application);
               res.status(201).send({
                 success: true,
                 message: "Application submitted successfully",
@@ -1138,7 +1138,7 @@ async function run() {
           .limit(limit)
           .toArray();
 
-        console.log("Total jobs found:", jobs.length);
+        // console.log("Total jobs found:", jobs.length);
 
         // Send the response with jobs and pagination info
         res.json({
@@ -1168,7 +1168,7 @@ async function run() {
         const result = await featuredcompanyJobsCollection
           .find(query)
           .toArray();
-        console.log(result);
+        // console.log(result);
 
         res.status(200).json(result);
       } catch (error) {
@@ -1408,7 +1408,7 @@ async function run() {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
         const companyName = req.query.companyName;
-        console.log("cnam", companyName);
+        // console.log("cnam", companyName);
 
         let isResult = await companyJobsCollection.deleteMany();
 
@@ -1548,7 +1548,7 @@ async function run() {
     app.post("/schedule", async (req, res) => {
       const { eventName, description, duration, selectedDate, selectedTime } =
         req.body;
-      console.log(req.body);
+      // console.log(req.body);
       if (
         !eventName ||
         !description ||
