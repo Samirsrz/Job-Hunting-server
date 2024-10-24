@@ -111,6 +111,8 @@ async function run() {
 
     // interviewsCollection
     const interviewsCollection = db.collection("interviews");
+    // resume builder
+    const resumeCollection = db.collection("resume");
 
     // ai api start
     app.post("/ai", async (req, res) => {
@@ -1595,6 +1597,37 @@ async function run() {
     });
 
     // Interview route
+
+    // resume builder
+
+    app.post("/resume", async (req, res) => {
+      const {  name, email, phone, education, experience, skills } =
+        req.body;
+      console.log(req.body);
+      
+      try {
+        const result = await resumeCollection.insertOne({
+          name,
+          email,
+          phone,
+          education,
+          experience,
+          skills,
+        });
+        console.log(result);
+        res
+          .status(201)
+          .json({ message: "Resume saved successfully!", data: result });
+      } catch (err) {
+        res
+          .status(500)
+          .json({ message: "Failed to Resume saved!", error: err });
+      }
+    });
+
+
+
+    // resume builder
 
     await client.db("admin").command({ ping: 1 });
     console.log(
