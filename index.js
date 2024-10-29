@@ -26,7 +26,7 @@ const eventChallenge = require("./eventChallenge/eventChallenge.js");
 
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
-
+const stripe = require('stripe')(`${process.env.STRIPE_SECRET_KEY}`);
 const model = genAI.getGenerativeModel({
   model: "gemini-1.5-flash",
 });
@@ -1497,6 +1497,13 @@ async function run() {
         return res.status(500).send("Error fetching payment data");
       }
     });
+
+    app.get("/get-payments", async (req, res) => {
+      const result = await paymentCollection.find().toArray();
+      res.send(result);
+    });
+
+
 
     app.delete("/jobs/:id/apply", verifyToken, async (req, res) => {
       try {
