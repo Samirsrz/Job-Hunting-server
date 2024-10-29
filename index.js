@@ -47,7 +47,7 @@ const corsOptions = {
     "http://localhost:5175",
 
     "https://job-hunting-job-seekers.vercel.app",
-    "https://innovative-codex.web.app"
+    "https://innovative-codex.web.app",
   ],
   credentials: true,
   optionSuccessStatus: 200,
@@ -284,9 +284,37 @@ async function run() {
     //delete job form admin dashboard
     app.delete(`/job/:id`, verifyToken, async (req, res) => {
       const id = req.params.id;
-      const quary = { _id: new ObjectId(id) };
-      const result = await jobCollection.deleteOne(quary);
+      const query = { _id: new ObjectId(id) };
+      const result = await jobCollection.deleteOne(query);
       res.send(result);
+    });
+
+    app.get("/jobsByIds", async (req, res) => {
+      try {
+        const ids = req.query.ids;
+        if (!ids) {
+          return res.status(400).send({
+            success: false,
+            message: "Invalid input: At least one ID is required.",
+          });
+        }
+        const idArray = Array.isArray(ids) ? ids : [ids];
+        const objectIds = idArray.map((id) => new ObjectId(id));
+        const results = await jobCollection
+          .find({ _id: { $in: objectIds } })
+          .toArray();
+        res.status(200).send({
+          success: true,
+          message: "Jobs fetched successfully",
+          data: results,
+        });
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          data: error.message,
+        });
+      }
     });
 
     app.get("/job-suggestions", async (req, res) => {
