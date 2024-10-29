@@ -354,7 +354,7 @@ async function run() {
         const result = await jobCollection.findOne(query);
         const existingApplication = await appliesCollection.findOne({
           jobId: id,
-          applicantEmail: req.user.email,
+          "applicant.email": req.user.email,
         });
         result.applied = !!existingApplication;
         res.status(200).send({
@@ -1511,7 +1511,7 @@ async function run() {
           });
         }
 
-        const query = { jobId: id, applicantEmail };
+        const query = { jobId: id, "applicant.email": applicantEmail };
         const existingApplication = await appliesCollection.findOne(query);
 
         if (!existingApplication) {
