@@ -84,6 +84,7 @@ const client = new MongoClient(uri, {
   },
 });
 
+
 async function run() {
   try {
     const db = client.db("job-hunting");
