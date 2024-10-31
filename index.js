@@ -13,12 +13,12 @@ const companyJobs = require("./companyJobs/companyJobs.js");
 const featuredcompanyJobs = require("./featuredCompanyJobs/featuredCompanyJobs.js");
 const jwt = require("jsonwebtoken");
 let port = process.env.port || 8000;
-const multer = require('multer');
-const Grid = require('gridfs-stream')
-const GridFSBucket = require('mongodb').GridFSBucket;
-const stream = require('stream');
+const multer = require("multer");
+const Grid = require("gridfs-stream");
+const GridFSBucket = require("mongodb").GridFSBucket;
+const stream = require("stream");
 const sponsored = require("./sponsoredCompanies/sponsored.js");
-const eventChallenge = require("./eventChallenge/eventChallenge.js")
+const eventChallenge = require("./eventChallenge/eventChallenge.js");
 // const multer = require("multer");
 // const Grid = require("gridfs-stream");
 // const GridFSBucket = require("mongodb").GridFSBucket;
@@ -47,18 +47,16 @@ const corsOptions = {
     "http://localhost:5175",
 
     "https://job-hunting-job-seekers.vercel.app",
+    "https://innovative-codex.web.app",
   ],
   credentials: true,
   optionSuccessStatus: 200,
 };
 
-
 app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(cookieParser());
-
-
 
 const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
@@ -102,7 +100,7 @@ async function run() {
     // soposored companies collection
 
     const sponsoredCompanyJobsCollection = db.collection("sponsoredJobs");
-    const eventChallengeCollection = db.collection('eventJobs')
+    const eventChallengeCollection = db.collection("eventJobs");
     // // followers collection
     // // featured collection
     const featuredcompanyJobsCollection = db.collection("featuredJobs");
@@ -112,6 +110,8 @@ async function run() {
 
     // interviewsCollection
     const interviewsCollection = db.collection("interviews");
+    // resume builder
+    const resumeCollection = db.collection("resume");
 
     // ai api start
     app.post("/ai", async (req, res) => {
@@ -282,6 +282,42 @@ async function run() {
       }
     });
 
+    //delete job form admin dashboard
+    app.delete(`/job/:id`, verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await jobCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.get("/jobsByIds", async (req, res) => {
+      try {
+        const ids = req.query.ids;
+        if (!ids) {
+          return res.status(400).send({
+            success: false,
+            message: "Invalid input: At least one ID is required.",
+          });
+        }
+        const idArray = Array.isArray(ids) ? ids : [ids];
+        const objectIds = idArray.map((id) => new ObjectId(id));
+        const results = await jobCollection
+          .find({ _id: { $in: objectIds } })
+          .toArray();
+        res.status(200).send({
+          success: true,
+          message: "Jobs fetched successfully",
+          data: results,
+        });
+      } catch (error) {
+        res.status(400).send({
+          success: false,
+          message: "Something went wrong",
+          data: error.message,
+        });
+      }
+    });
+
     app.get("/job-suggestions", async (req, res) => {
       try {
         const { search } = req.query;
@@ -319,7 +355,7 @@ async function run() {
         const result = await jobCollection.findOne(query);
         const existingApplication = await appliesCollection.findOne({
           jobId: id,
-          applicantEmail: req.user.email,
+          "applicant.email": req.user.email,
         });
         result.applied = !!existingApplication;
         res.status(200).send({
@@ -369,75 +405,6 @@ async function run() {
           message: "Something went wrong",
           data: error,
         });
-      }
-    });
-
-    app.post("/jobs/:id/apply", upload.single('file'), verifyToken, async (req, res) => {
-      try {
-        const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
-        const readableStream = new stream.Readable();
-        readableStream.push(req.file.buffer);
-        readableStream.push(null);
-        const uploadStream = bucket.openUploadStream(req.file.originalname, {
-          contentType: req.file.mimetype,
-        });
-        readableStream.pipe(uploadStream);
-        uploadStream.on('finish', async () => {
-          try {
-            const jobId = req.params.id;
-            const {
-
-              jobTitle,
-
-              coverLetter = "",
-            } = req.body;
-
-            const existingApplication = await appliesCollection.findOne({
-              jobId: jobId,
-              applicantEmail: req.user.email,
-            });
-
-            if (existingApplication) {
-              return res.status(400).send({
-                success: false,
-                message: "You have already applied for this job",
-              });
-            }
-
-            const application = {
-              jobId: jobId,
-              applicantEmail: req.user.email,
-              resume: uploadStream.id,
-              coverLetter,
-              status: 'pending',
-              jobTitle,
-              appliedAt: new Date(),
-            };
-
-
-            const result = await appliesCollection.insertOne(application);
-
-            res.status(201).send({
-              success: true,
-              message: "Application submitted successfully",
-              data: result,
-            });
-          } catch (error) {
-            res.status(500).send({
-              success: false,
-              message: "Something went wrong",
-              data: error.message,
-            });
-          }
-        });
-
-        uploadStream.on('error', (err) => {
-          console.error(err);
-          return res.status(500).json({ message: 'Error uploading file', error: err });
-        });
-      } catch (err) {
-        console.error(err);
-        return res.status(500).json({ message: 'Server Error', error: err });
       }
     });
 
@@ -662,7 +629,7 @@ async function run() {
         const avgRating =
           reviews.length > 0
             ? reviews.reduce((acc, review) => acc + review.rating, 0) /
-            reviews.length
+              reviews.length
             : 0;
 
         await jobCollection.updateOne(
@@ -859,37 +826,31 @@ async function run() {
       }
     });
 
-
     // // home branch
 
-    app.get('/category-button', async (req, res) => {
+    app.get("/category-button", async (req, res) => {
       try {
         // Destructure the category query parameter from req.query
         let { category } = req.query;
         console.log(category);
-    
+
         // Use the category variable to find jobs
         let result = await jobCollection.find({ category }).toArray();
         console.log(result);
-        
+
         // Send the result back to the client
         return res.send(result);
-    
       } catch (error) {
         // Handle errors and send them to the client
         return res.status(500).send(error.message);
       }
     });
-    
-
-
-
 
     //
 
     // // search filter
 
-    app.get('/job/search', async (req, res) => {
+    app.get("/job/search", async (req, res) => {
       try {
         const { location, type } = req.query;
         console.log(req.query);
@@ -911,18 +872,18 @@ async function run() {
         if (jobs.length > 0) {
           res.status(200).json(jobs);
         } else {
-          res.status(404).json({ message: 'No jobs found matching the criteria' });
+          res
+            .status(404)
+            .json({ message: "No jobs found matching the criteria" });
         }
       } catch (error) {
-        res.status(500).json({ message: 'Server Error', error });
+        res.status(500).json({ message: "Server Error", error });
       }
     });
-
 
     // // company jobs collection
 
     // // random 5 data get from collection
-
 
     app.get("/company/collection/interested", async (req, res) => {
       try {
@@ -961,8 +922,6 @@ async function run() {
 
     // // featured company jobs
 
-
-
     // app.get('/featured/company/jobs', async (req, res) => {
     //   try {
     //     // console.log(companyJobs);
@@ -991,10 +950,6 @@ async function run() {
     //     res.json({ error: error.message })
     //   }
     // })
-
-
-
-
 
     // app.get('/featured/company/jobs', async (req, res) => {
     //   try {
@@ -1069,31 +1024,40 @@ async function run() {
     //   }
     // });
 
-
-
-
-    app.get('/featured/company/jobs', async (req, res) => {
+    app.get("/featured/company/jobs", async (req, res) => {
       try {
         // Extract pagination parameters
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 12;
 
         // Extract filters from the query, ensuring they are arrays
-        const selectedBusinessTypes = Array.isArray(req.query.selectedBusinessTypes)
+        const selectedBusinessTypes = Array.isArray(
+          req.query.selectedBusinessTypes
+        )
           ? req.query.selectedBusinessTypes
-          : req.query.selectedBusinessTypes ? [req.query.selectedBusinessTypes] : [];
+          : req.query.selectedBusinessTypes
+          ? [req.query.selectedBusinessTypes]
+          : [];
 
-        const selectedCompanyTypes = Array.isArray(req.query.selectedCompanyTypes)
+        const selectedCompanyTypes = Array.isArray(
+          req.query.selectedCompanyTypes
+        )
           ? req.query.selectedCompanyTypes
-          : req.query.selectedCompanyTypes ? [req.query.selectedCompanyTypes] : [];
+          : req.query.selectedCompanyTypes
+          ? [req.query.selectedCompanyTypes]
+          : [];
 
         const selectedIndustries = Array.isArray(req.query.selectedIndustries)
           ? req.query.selectedIndustries
-          : req.query.selectedIndustries ? [req.query.selectedIndustries] : [];
+          : req.query.selectedIndustries
+          ? [req.query.selectedIndustries]
+          : [];
 
         const selectedSectors = Array.isArray(req.query.selectedSectors)
           ? req.query.selectedSectors
-          : req.query.selectedSectors ? [req.query.selectedSectors] : [];
+          : req.query.selectedSectors
+          ? [req.query.selectedSectors]
+          : [];
 
         // Initialize an empty filters object
         const filters = {};
@@ -1102,7 +1066,7 @@ async function run() {
         if (selectedBusinessTypes.length > 0) {
           filters.tags = {
             ...filters.tags,
-            $in: selectedBusinessTypes.map(type => new RegExp(type, 'i')) // Case-insensitive regex matching
+            $in: selectedBusinessTypes.map((type) => new RegExp(type, "i")), // Case-insensitive regex matching
           };
         }
 
@@ -1110,7 +1074,7 @@ async function run() {
         if (selectedCompanyTypes.length > 0) {
           filters.tags = {
             ...filters.tags,
-            $in: selectedCompanyTypes.map(type => new RegExp(type, 'i')) // Case-insensitive regex matching
+            $in: selectedCompanyTypes.map((type) => new RegExp(type, "i")), // Case-insensitive regex matching
           };
         }
 
@@ -1118,7 +1082,9 @@ async function run() {
         if (selectedIndustries.length > 0) {
           filters.tags = {
             ...filters.tags,
-            $in: selectedIndustries.map(industry => new RegExp(industry, 'i')) // Case-insensitive regex matching
+            $in: selectedIndustries.map(
+              (industry) => new RegExp(industry, "i")
+            ), // Case-insensitive regex matching
           };
         }
 
@@ -1126,75 +1092,64 @@ async function run() {
         if (selectedSectors.length > 0) {
           filters.tags = {
             ...filters.tags,
-            $in: selectedSectors.map(sector => new RegExp(sector, 'i')) // Case-insensitive regex matching
+            $in: selectedSectors.map((sector) => new RegExp(sector, "i")), // Case-insensitive regex matching
           };
         }
 
         // Count the total jobs that match the filters
-        const totalJobs = await featuredcompanyJobsCollection.countDocuments(filters);
+        const totalJobs = await featuredcompanyJobsCollection.countDocuments(
+          filters
+        );
         const totalPages = Math.ceil(totalJobs / limit);
 
         // Fetch the jobs with pagination and filtering
-        const jobs = await featuredcompanyJobsCollection.find(filters)
+        const jobs = await featuredcompanyJobsCollection
+          .find(filters)
           .skip((page - 1) * limit)
           .limit(limit)
           .toArray();
 
-        console.log('Total jobs found:', jobs.length);
+        // console.log("Total jobs found:", jobs.length);
+        // console.log('Total jobs found:', jobs.length);
 
         // Send the response with jobs and pagination info
         res.json({
           jobs,
           totalPages,
           currentPage: page,
-          totalJobs
+          totalJobs,
         });
-
       } catch (error) {
-        console.error('Error fetching jobs:', error);
+        console.error("Error fetching jobs:", error);
         res.status(500).json({ error: error.message });
       }
     });
 
-
-
-
-
-
-    app.get('/search', async (req, res) => {
+    app.get("/search", async (req, res) => {
       try {
-
         // Define the tags you're searching for (e.g., B2B and B2C)
-        const tagsToSearch = ['B2B', 'B2C'];
+        const tagsToSearch = ["B2B", "B2C"];
 
         // Find documents where the 'tags' array contains elements that match exactly or partially
         const query = {
           tags: {
-            $in: tagsToSearch.map(tag => new RegExp(tag, 'i')) // Case-insensitive regex matching
-          }
+            $in: tagsToSearch.map((tag) => new RegExp(tag, "i")), // Case-insensitive regex matching
+          },
         };
 
-        const result = await featuredcompanyJobsCollection.find(query).toArray();
-        console.log(result);
+        const result = await featuredcompanyJobsCollection
+          .find(query)
+          .toArray();
+        // console.log(result);
 
         res.status(200).json(result);
       } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        res.status(500).json({ message: "Internal Server Error" });
       } finally {
         await client.close(); // Ensure to close the MongoDB connection
       }
     });
-
-
-
-
-
-
-
-
-
-
 
     // sponsored starts
     // app.get("/sponsored/jobs", async (req, res) => {
@@ -1224,11 +1179,6 @@ async function run() {
     //     });
     //   }
     // });
-
-
-
-
-
 
     // featured jobs
     // for inserting featured data
@@ -1261,11 +1211,9 @@ async function run() {
     //   }
     // });
 
-
     // app.get("/featured/jobs", async (req, res) => {
     //   try {
     //     let isResult = await featuredcompanyJobsCollection.deleteMany();
-
 
     //     if (isResult.acknowledged == true) {
     //       let posted = await featuredcompanyJobsCollection.insertMany(
@@ -1289,13 +1237,11 @@ async function run() {
     //   }
     // });
 
-
     // // event challenge
 
     app.get("/event/challenge", async (req, res) => {
       try {
         let isResult = await eventChallengeCollection.deleteMany();
-
 
         if (isResult.acknowledged == true) {
           let posted = await eventChallengeCollection.insertMany(
@@ -1319,48 +1265,48 @@ async function run() {
       }
     });
 
-
-
     app.get("/event/challenge/:id", async (req, res) => {
       try {
-        let result = await eventChallengeCollection.findOne({ _id: new ObjectId(req.params.id) })
-        return res.send(result)
+        let result = await eventChallengeCollection.findOne({
+          _id: new ObjectId(req.params.id),
+        });
+        return res.send(result);
       } catch (error) {
-        return res.json({ message: 'something error', error: error.message }).status(500)
+        return res
+          .json({ message: "something error", error: error.message })
+          .status(500);
       }
-    })
+    });
 
-
-    app.get('/sponsored/companies', async (req, res) => {
+    app.get("/sponsored/companies", async (req, res) => {
       try {
         const category = req.query.category; // category from the frontend query param
         let query = {};
 
         // If category is not "All", filter by the category
-        if (category && category !== 'All') {
+        if (category && category !== "All") {
           query = { tags: category }; // Check if 'tags' array contains the selected category
         }
 
-        const companies = await sponsoredCompanyJobsCollection.find(query).toArray();
+        const companies = await sponsoredCompanyJobsCollection
+          .find(query)
+          .toArray();
         res.status(200).json(companies);
       } catch (error) {
-        res.status(500).json({ message: 'Error fetching companies' });
+        res.status(500).json({ message: "Error fetching companies" });
       }
     });
 
     // sponsored ends
 
-
-
-
-    app.get('/api/featured-jobs', async (req, res) => {
-      const category = req.query.category || 'All'; // Get the category from query parameters
+    app.get("/api/featured-jobs", async (req, res) => {
+      const category = req.query.category || "All"; // Get the category from query parameters
       console.log(category);
 
       try {
         let query = {};
-        if (category !== 'All') {
-          query = { tags: category }; // Filter by category tags 
+        if (category !== "All") {
+          query = { tags: category }; // Filter by category tags
         }
 
         const jobs = await featuredcompanyJobsCollection.find(query).toArray();
@@ -1369,7 +1315,7 @@ async function run() {
         res.status(200).json(jobs);
       } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ error: "Internal Server Error" });
       }
     });
 
@@ -1384,7 +1330,6 @@ async function run() {
           _id: new ObjectId(id),
         });
         // console.log(result);
-
 
         res.send(result);
       } catch (error) {
@@ -1421,12 +1366,10 @@ async function run() {
         const { email } = req.params;
         // console.log(email);
 
-
         // Check if email exists in the collection
         const result = await followersCollection.findOne({ email: email });
 
         if (result) {
-
           res
             .status(200)
             .send({ message: "Email found in followers", isFound: true });
@@ -1478,7 +1421,6 @@ async function run() {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
         const companyName = req.query.companyName;
-        console.log('cnam', companyName);
 
         const totalJobs = await companyJobsCollection.countDocuments();
         const totalPages = Math.ceil(totalJobs / limit);
@@ -1487,7 +1429,6 @@ async function run() {
         //   let result = await companyJobsCollection.find().toArray()
         //   return res.send(result)
         // }
-
 
         const jobs = await companyJobsCollection
           .find({ companyName: companyName })
@@ -1502,26 +1443,21 @@ async function run() {
           totalJobs,
         });
 
-
-
         // let result =await companyJobsCollection.find().toArray()
         // console.log(result);
-      } catch (error) { }
+      } catch (error) {}
     });
 
-
     //payment posting route
-    app.post('/api/payment', async (req, res) => {
+    app.post("/api/payment", async (req, res) => {
       const { amount, payerEmail, status, type } = req.body;
 
       try {
-
         const paymentIntent = await stripe.paymentIntents.create({
           amount: parseInt(amount),
-          currency: 'usd',
-          payment_method_types: ['card']
+          currency: "usd",
+          payment_method_types: ["card"],
         });
-
 
         const paymentData = {
           email: payerEmail,
@@ -1535,17 +1471,16 @@ async function run() {
         const result = await paymentCollection.insertOne(paymentData);
 
         res.send({
-          clientSecret: paymentIntent.client_secret
-        })
-
+          clientSecret: paymentIntent.client_secret,
+        });
       } catch (error) {
-        console.error('Error processing payment:', error);
-        return res.status(500).send('Error processing payment');
+        console.error("Error processing payment:", error);
+        return res.status(500).send("Error processing payment");
       }
     });
 
     //get payment by email
-    app.get('/api/payment/:email', async (req, res) => {
+    app.get("/api/payment/:email", async (req, res) => {
       const email = req.params.email;
 
       try {
@@ -1554,15 +1489,15 @@ async function run() {
         if (payments.length > 0) {
           return res.json(payments);
         } else {
-          return res.status(404).json({ message: 'No payments found for this ID' });
+          return res
+            .status(404)
+            .json({ message: "No payments found for this ID" });
         }
       } catch (error) {
-        console.error('Error fetching payment data:', error);
-        return res.status(500).send('Error fetching payment data');
+        console.error("Error fetching payment data:", error);
+        return res.status(500).send("Error fetching payment data");
       }
     });
-
-
 
     app.delete("/jobs/:id/apply", verifyToken, async (req, res) => {
       try {
@@ -1577,7 +1512,7 @@ async function run() {
           });
         }
 
-        const query = { jobId: id, applicantEmail };
+        const query = { jobId: id, "applicant.email": applicantEmail };
         const existingApplication = await appliesCollection.findOne(query);
 
         if (!existingApplication) {
@@ -1613,8 +1548,14 @@ async function run() {
     app.post("/schedule", async (req, res) => {
       const { eventName, description, duration, selectedDate, selectedTime } =
         req.body;
-
-      if (!eventName || !duration || !selectedDate || !selectedTime) {
+      // console.log(req.body);
+      if (
+        !eventName ||
+        !description ||
+        !duration ||
+        !selectedDate ||
+        !selectedTime
+      ) {
         return res
           .status(400)
           .json({ message: "Please provide all required fields" });
@@ -1656,6 +1597,34 @@ async function run() {
     });
 
     // Interview route
+
+    // resume builder
+
+    app.post("/resume", async (req, res) => {
+      const { name, email, phone, education, experience, skills } = req.body;
+      console.log(req.body);
+
+      try {
+        const result = await resumeCollection.insertOne({
+          name,
+          email,
+          phone,
+          education,
+          experience,
+          skills,
+        });
+        console.log(result);
+        res
+          .status(201)
+          .json({ message: "Resume saved successfully!", data: result });
+      } catch (err) {
+        res
+          .status(500)
+          .json({ message: "Failed to Resume saved!", error: err });
+      }
+    });
+
+    // resume builder
 
     await client.db("admin").command({ ping: 1 });
     console.log(
