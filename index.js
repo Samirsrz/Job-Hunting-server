@@ -82,13 +82,14 @@ const client = new MongoClient(uri, {
   },
 });
 
+
 async function run() {
   try {
     const db = client.db("job-hunting");
 
     const storage = multer.memoryStorage();
     const upload = multer({ storage: storage });
-
+    const pariticipantstCollection=db.collection("participants")
     const jobCollection = db.collection("jobs");
     const appliesCollection = db.collection("applies");
     const companyJobsCollection = db.collection("companyJobs");
@@ -1263,6 +1264,18 @@ async function run() {
         });
       }
     });
+
+    app.post('/event/participate', async (req, res) => {
+      try {
+        const info = req.body;
+        const result = await pariticipantstCollection.insertOne(info);
+    
+        return res.status(201).send(result);  // Use status 201 for created
+      } catch (error) {
+        return res.status(500).send({ error: error.message });
+      }
+    });
+    
 
     app.get("/event/challenge/:id", async (req, res) => {
       try {

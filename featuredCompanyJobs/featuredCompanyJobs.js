@@ -154,7 +154,7 @@ let featuredcompanyJobs=[
         ]
     },
     {
-        "logo": "https://img.naukimg.com/logo_images/groups/v1/32279.gif",
+        "logo": "https://img.naukimg.com/logo_images/groups/v1/4587697.gif",
         "short_description": "Impact global health at Sanofi",
         "companyName": "Sanofi",
         "ratings": "4.0",
@@ -186,7 +186,7 @@ let featuredcompanyJobs=[
         ]
     },
     {
-        "logo": "https://img.naukimg.com/logo_images/groups/v1/32281.gif",
+        "logo": "https://img.naukimg.com/logo_images/groups/v2/21746.gif",
         "short_description": "Build the future at Microsoft",
         "companyName": "Microsoft",
         "ratings": "4.4",
@@ -218,7 +218,7 @@ let featuredcompanyJobs=[
         ]
     },
     {
-        "logo": "https://img.naukimg.com/logo_images/groups/v1/32283.gif",
+        "logo": "https://img.naukimg.com/logo_images/groups/v1/8270081.gif",
         "short_description": "Redefine tech at Apple",
         "companyName": "Apple",
         "ratings": "4.6",
@@ -399,7 +399,7 @@ let featuredcompanyJobs=[
         ]
     },
     {
-        "logo": "https://img.naukimg.com/logo_images/groups/v1/32280.gif",
+        "logo": "https://img.naukimg.com/logo_images/groups/v2/2095704.gif",
         "short_description": "Experience new heights at Google",
         "companyName": "Google",
         "ratings": "4.5",
